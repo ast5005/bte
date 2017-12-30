@@ -12,6 +12,9 @@ global g_T=0.0
 global g_Ef=0.0
 global g_band=parBandTx(0.0,0.0,0.0,[func1(x)=1],[func2(x)=1],[0.0,0.0])
 global g_intvalue=0.0
+
+nodes, weights = qnwlege(500, 0.0,10.0)
+
 #global g_Ef=0.0,g_band=parBandTx(0.0,0.0,0.0,[gen],[gen],[0.0,0.0]),g_intvalue=0.0
 #global g_Ef=0.0,g_band=parBandTx(0.0,0.0,0.0,[function ft1(x) return 1 end],[function ft2(x) return 1 end],[0.0,0.0]),g_intvalue=0.0
 
@@ -121,7 +124,12 @@ function Gamma(MI::Float64,MII::Float64,aI::Float64,aII::Float64,xs::Float64,eps
 end
 ##SiGe Properties
 ######################################################
-function tauAC_func(Cl,Da,T,mdx,E::Float64,band)    
+function tauAC_func(E::Array{Float64})
+        return (E*q).^0.5
+end
+
+function tauAC_func(Cl,Da,T,mdx,E::Float64,band)  
+    #println("Reached tauAC_func v1")
     md=band.effMass
     t=1#1e1
     if md>0   
@@ -148,6 +156,7 @@ function tauAC_func(Cl,Da,T,mdx,E::Float64,band)
     end
 end
 function tauAC_func(Cl::Float64,Da::Float64,Dv::Float64,T::Float64,mdx::Float64,E::Float64,band::parBandTx)      
+    #println("Reached tauAC_func v2")
     a=band.alpha
     md=band.effMass
     t=1
@@ -178,7 +187,7 @@ function tauAC_func(Cl::Float64,Da::Float64,Dv::Float64,T::Float64,mdx::Float64,
     end
 end
 function tauAC_func(Cl,T,md,E::Float64,band)  
-    #println("Reached tauAC_func")
+    #println("Reached tauAC_func v3")
     t=1#1e1
     #foreach(println,band.var)
     Da=band.var[3]
@@ -325,7 +334,9 @@ function tauPOP2_func(epsilon0,epsilonhf,band,Ef,T,md,E::Array{Float64},opPhE)
 end
 
 function tauII2_func(epsilon0,epsilonhf,band,Ef,T,NII,md,E::Float64,bndst)
-    global g_T,g_Ef,g_band,g_intvalue    
+    global g_T,g_Ef,g_band,g_intvalue  
+    
+   # nodes, weights = qnwlege(500, 0.0,8.0)
     t=1#0.1e-18#7e-2
     min=Ef-20kBe*T<0 ? 0.0 : Ef-20kBe*T    
    #epsilon0*kB*T/q/q/abs(NII)#2*epsilon0*(Ef-band.offset)*q/(3*q*q*abs(NII))
@@ -334,7 +345,8 @@ function tauII2_func(epsilon0,epsilonhf,band,Ef,T,NII,md,E::Float64,bndst)
             return 0    
         else  
             integrandp_tauII2_func(x)=q*getDOS_MultiBand_E_Total(bndst,x).*-fermiDerivativeTemp_Ef_E(Ef,T,x)    
-            nodes, weights = qnwlege(80, min, (Ef+30kBe*T))
+            #nodes, weights = qnwlege(300, min, (Ef+20kBe*T))
+            
             #integral1=quadgk(integrand,min,Ef+20kBe*T)[1]            
             if band==g_band && Ef==g_Ef && g_T==T                
                 integral2=g_intvalue               
@@ -347,11 +359,13 @@ function tauII2_func(epsilon0,epsilonhf,band,Ef,T,NII,md,E::Float64,bndst)
                 g_T=T
                 #println("hereC2")
             end
+            #integral2=do_quad(integrandp_tauII2_func,nodes, weights)
             r0sq=epsilon0/(q*q*integral2)
-            #println("integral1=$integral1")
+            #println("integral1=s$integral1")
             #println("integral2=$integral2")
             gamma=(8*md*r0sq*(E-band.offset)*q)/(hbar^2)
-            return t*16*sqrt(2*md)*pi*epsilon0^2*((E-band.offset)*q)^1.5/abs(NII)/q^4/(log(1+gamma)-gamma/(1+gamma))#delta0/(1+delta0)
+            #return integral2#r0sq
+            return 16*sqrt(2*md)*pi*epsilon0^2*((E-band.offset)*q)^1.5/abs(NII)/q^4/(log(1+gamma)-gamma/(1+gamma))#delta0/(1+delta0)
             #return t*16*sqrt(2*md)*pi*epsilon0^2*((E-band.offset)*q)^1.5/abs(NII)/q^4/(log(1+gamma)-1/(1+gamma))#delta0/(1+delta0)
             #return t*16*sqrt(2*md)*pi*epsilon0^2*((E-band.offset)*q)^1.5/abs(NII)/q^4/1 #delta0/(1+delta0)
             
@@ -361,12 +375,12 @@ function tauII2_func(epsilon0,epsilonhf,band,Ef,T,NII,md,E::Float64,bndst)
             return 0    
         else   
             integrandn_tauII2_func(x)=q*getDOS_MultiBand_E_Total(bndst,x).*-fermiDerivativeTemp_Ef_E(Ef,T,x)    
-    nodes, weights = qnwlege(60, min, (Ef+20kBe*T))
+    
             #integral1=quadgk(integrand,min,Ef+20kBe*T)[1]
             global g_T,g_Ef,g_bndst,g_intvalue
             if  band==g_band && Ef==g_Ef && g_T==T                
                 integral2=g_intvalue
-                #println("hereV1")
+            # println("hereV1")
             else                
                 g_intvalue=do_quad(integrandn_tauII2_func,nodes, weights)
                 integral2=g_intvalue
@@ -375,11 +389,13 @@ function tauII2_func(epsilon0,epsilonhf,band,Ef,T,NII,md,E::Float64,bndst)
                 g_T=T                
                 #println("hereV2")
             end
+            #integral2=do_quad(integrandn_tauII2_func,nodes, weights)
             #println("integral1=$integral1")
             #println("integral2=$integral2")
             r0sq=epsilon0/(q*q*integral2)
             gamma=(8*abs(md)*r0sq*(-E+band.offset)*q)/(hbar^2)
-            return t*16*sqrt(2*abs(md))*pi*epsilon0^2*((-E+band.offset)*q)^1.5/abs(NII)/q^4/(log(1+gamma)-gamma/(1+gamma))
+            #return integral2#
+            return 16*sqrt(2*abs(md))*pi*epsilon0^2*((-E+band.offset)*q)^1.5/abs(NII)/q^4/(log(1+gamma)-gamma/(1+gamma))
             #return t*16*sqrt(2*abs(md))*pi*epsilon0^2*((-E+band.offset)*q)^1.5/abs(NII)/q^4/1
         end
     end    
@@ -395,6 +411,7 @@ function tauII2_func(epsilon0,epsilonhf,band,Ef,T,NII,md,E::Array{Float64},bndst
     end
     return tau
 end
+
 function tauNI_func(epsilon0::Float64,md::Float64,NNI::Float64)
     return (md*q)^2/(20*hbar^3*(4*pi*epsilon0)*NNI)
 end

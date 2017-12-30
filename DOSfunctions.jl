@@ -7,6 +7,7 @@ using types
 using Optim
 using Roots
 using QuantEcon
+using FastGaussQuadrature
 
 ##############################################################################################################
 ##############################################################################################################
@@ -16,6 +17,10 @@ using QuantEcon
 #
 const hbar3=1.1728121633258218e-102
 const pi2=9.869604401089358
+
+nodes0, weights0= qnwlege(1500, 0.0,10.0)
+nodes1, weights1= qnwlege(100, 0.0,10.0)
+
 function getDOS_SingleBand_E(band::parBandTx,E::Float64)
     effMass=0.0
      if band.effMass<0.0 
@@ -490,9 +495,9 @@ function sigmaD(tau_electron::types.tau_electron_Base,band,E,Ef,Temp)
     tau_electron.variables[1]=band.effMass
     tau_electron.variables[5]=Ef
     tau_electron.variables[6]=band
-    v=get_tau(tau_electron,E)
-    tau=(square_velocity_E(band,E))
-    return q.*q.*v.*tau.*q.*getDOS_SingleBand_E(band,E).*-fermiDerivativeTemp_Ef_E(Ef,Temp,E)  
+    tau=get_tau(tau_electron,E)
+    v=(square_velocity_E(band,E))
+    return q.*q.*q.*getDOS_SingleBand_E(band,E).*tau.*v.*-fermiDerivativeTemp_Ef_E(Ef,Temp,E) 
 end
 #
 #
@@ -529,18 +534,19 @@ end
 ##############################################################################################################
 ##############################################################################################################
 #Electrical Conductivity
+
 function sigma(tau_electron::types.tau_electron_Base,band,Ef,Temp)    
     if band.effMass>0                
         integrandp_sigma(E)=sigmaD(tau_electron::types.tau_electron_Base,band,E,Ef,Temp) 
-        nodes, weights = qnwlege(100, band.offset,band.offset+20kBe*Temp)
-        a= do_quad(integrandp_sigma,nodes, weights)
-        return a#quadgk(integrand,band.offset,band.offset+20kBe*Temp)[1]
+        #nodes0, weights0= qnwlege(100, band.offset,band.offset+200kBe*Temp)
+        a= do_quad(integrandp_sigma,nodes0, weights0)        
+        return a#quadgk(integrandp_sigma,0.0,Inf)[1]#a#quadgk(integrand,band.offset,band.offset+20kBe*Temp)[1]
     elseif band.effMass<0
-        min=band.offset-20kBe*Temp<0 ? 0.0 : band.offset-20kBe*Temp    
+        min=band.offset-200kBe*Temp<0 ? 0.0 : band.offset-200kBe*Temp    
         integrandn_sigma(E)=sigmaD(tau_electron::types.tau_electron_Base,band,E,Ef,Temp) 
-        nodes, weights = qnwlege(100, min,band.offset)
-        a= do_quad(integrandn_sigma,nodes, weights)
-        return a#quadgk(integrand,min,band.offset)[1]
+        #nodes0, weights0 = qnwlege(100, min,band.offset)
+        a= do_quad(integrandn_sigma,nodes0, weights0)         
+        return a#quadgk(integrandn_sigma,0.0,Inf)[1]#a#quadgk(integrand,min,band.offset)[1]
     else
         error("Band EffMass cannot be =0")
         return 0.0

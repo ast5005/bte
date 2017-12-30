@@ -78,6 +78,7 @@ function electronicProps(bndst,xs,Ts,numofn,tauTOTTx,xmax)
                 types.updatebnstTx(bndst)
                 Efs[i,j,k]=Fermilevel_n(nx,bndst,Tx,xmax)                
                 for (l,band) in enumerate(bndst.bands)
+                    #println("sigma ",sigmae)
                     if l==1
                         if band.effMass>0
                             presigmae=sigma(tauTOTTx,band,Efs[i,j,k],Tx)                            
@@ -132,6 +133,13 @@ function electronicProps(bndst,xs,Ts,numofn,tauTOTTx,xmax)
     return (Efs,sigmas,seebecks,kes,kees,kehs,kbis)
 end
 function electronicPropsiso(bndst,xs,Ts,numofn,tauTOTTx,xmax)
+    defnumofnn=Array{Float64}(length(numofn))
+    for (inn,) in enumerate(defnumofnn)
+       nn=1e17 
+    end
+   return  electronicPropsiso(bndst,xs,Ts,numofn,defnumofnn,tauTOTTx,xmax)
+end
+function electronicPropsiso(bndst,xs,Ts,numofn,numofnn,tauTOTTx,xmax)
     bandpre=bndst.bands[1]
     sigmae=0.0#Array{Float64}(length(bndst.bands))
     sigmah=0.0#Array{Float64}(length(bndst.bands))
@@ -153,12 +161,15 @@ function electronicPropsiso(bndst,xs,Ts,numofn,tauTOTTx,xmax)
     kbis=Array{Float64}(length(Ts),length(numofn),length(xs))
     Efs=Array{Float64}(length(Ts),length(numofn),length(xs))     
     for (i,Tx) in enumerate(Ts)
+        #println(rintln("T=$Tx")
         bndstTx.var[1]=Tx    
         tauTOTTx.variables[2]=Tx 
         for (j,nx) in enumerate(numofn)
+            #println("n=$nx")
             k=j
             xsx=xs[j]
             tauTOTTx.variables[7]=nx*1e6
+            tauTOTTx.variables[9]=numofnn[j]*1e6
             #for (k,xsx) in enumerate(xs)                
                 sigmae=0.0
                 sigmah=0.0
@@ -167,12 +178,15 @@ function electronicPropsiso(bndst,xs,Ts,numofn,tauTOTTx,xmax)
                 kee=0.0
                 keh=0.0
                 bndstTx.var[2]=xsx
+                #println("x=$xsx")
                 tauTOTTx.variables[4]=xsx
                 types.updatebnstTx(bndst)
                 Efs[i,j,k]=Fermilevel_n(nx,bndst,Tx,xmax)                
                 for (l,band) in enumerate(bndst.bands)
-                    if l==1
+                    
+                    if l==1                    
                         if band.effMass>0
+                   #         println("$Efs[i,j,k] ,$Tx")
                             presigmae=sigma(tauTOTTx,band,Efs[i,j,k],Tx)                            
                             preseebecke=seebeck_Nominator(tauTOTTx,band,Efs[i,j,k],Tx) 
                             prekee=keint(tauTOTTx,band,Efs[i,j,k],Tx) 
@@ -190,12 +204,16 @@ function electronicPropsiso(bndst,xs,Ts,numofn,tauTOTTx,xmax)
                         end                        
                     else
                         if band.effMass>0
-                            presigmae= bandpre==band ? presigmae : sigma(tauTOTTx,band,Efs[i,j,k],Tx)
+                            temp0=sigma(tauTOTTx,band,Efs[i,j,k],Tx)     
+                            #println("temp0=$temp0")                        
+                            presigmae= bandpre==band ? presigmae : temp0#sigma(tauTOTTx,band,Efs[i,j,k],Tx)
+                            #println("presigmae=$presigmae")
                             preseebecke= bandpre==band ? preseebecke : seebeck_Nominator(tauTOTTx,band,Efs[i,j,k],Tx)
                             prekee= bandpre==band ? prekee : keint(tauTOTTx,band,Efs[i,j,k],Tx)
                             sigmae+=isequal(presigmae,NaN) ? 0.0 : presigmae
                             seebecke+=isequal(preseebecke ,NaN) ? 0.0 : preseebecke 
                             kee+=isequal(prekee ,NaN) ? 0.0 : prekee 
+                            #println("sigmaein=$sigmae")
                         else
                             presigmah= bandpre==band ? presigmah : sigma(tauTOTTx,band,Efs[i,j,k],Tx)
                             preseebecke= bandpre==band ? preseebecke : seebeck_Nominator(tauTOTTx,band,Efs[i,j,k],Tx) 
@@ -206,6 +224,7 @@ function electronicPropsiso(bndst,xs,Ts,numofn,tauTOTTx,xmax)
                         end
                         bandpre=band
                     end
+                #println("l = $l , sigmae= $sigmae ")
                 end
                 sigmas[i,j,k]=sigmae+sigmah
                 seebecks[i,j,k]=(seebecke+seebeckh)/sigmas[i,j,k]            
@@ -224,6 +243,7 @@ function electronicPropsiso(bndst,xs,Ts,numofn,tauTOTTx,xmax)
    end
     return (Efs,sigmas,seebecks,kes,kees,kehs,kbis)
 end
+
 function thermalPropsiso(tauPHL::Array{tau_phonon_B,1},tauPHTx::Array{tau_phonon_B,1},tauPHTy::Array{tau_phonon_B,1},vsos::Array{Float64,1})
     
     klattice=Array{Float64,3}(length(Ts),length(numofn),length(xs))

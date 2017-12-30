@@ -13,6 +13,7 @@ type parBand{T}
   effMass::T
   alpha::T
   offset::T
+  degen=1.0
     
 end
 type parBandTx
