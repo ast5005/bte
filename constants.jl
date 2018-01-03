@@ -1,5 +1,5 @@
 # constants.jl
-
+#__precompile__()
 module constants
 
 export h, hbar, q, kB, me, kBe, eps0, Nav

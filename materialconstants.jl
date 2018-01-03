@@ -1,3 +1,4 @@
+#__precompile__()
 module materialconstants
 using constants
 export Cl,Da

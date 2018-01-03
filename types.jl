@@ -1,5 +1,5 @@
 #  types.jl
-
+#__precompile__()
 module types
 import constants
 import materialconstants
@@ -13,17 +13,20 @@ type parBand{T}
   effMass::T
   alpha::T
   offset::T
-  degen=1.0
+  degen::T
     
 end
 type parBandTx
+    degen::Float64
     effMass::Float64
     alpha::Float64
     offset::Float64
     funsofoffset::Vector{Function} 
     funsofeffMass::Vector{Function}
     var::Vector{Float64}
+    
 end
+
 
 type BandStrucTx
     bands::Vector{parBandTx}

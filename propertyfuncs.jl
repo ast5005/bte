@@ -135,7 +135,7 @@ end
 function electronicPropsiso(bndst,xs,Ts,numofn,tauTOTTx,xmax)
     defnumofnn=Array{Float64}(length(numofn))
     for (inn,) in enumerate(defnumofnn)
-       nn=1e17 
+       inn=1e17 
     end
    return  electronicPropsiso(bndst,xs,Ts,numofn,defnumofnn,tauTOTTx,xmax)
 end
@@ -182,8 +182,7 @@ function electronicPropsiso(bndst,xs,Ts,numofn,numofnn,tauTOTTx,xmax)
                 tauTOTTx.variables[4]=xsx
                 types.updatebnstTx(bndst)
                 Efs[i,j,k]=Fermilevel_n(nx,bndst,Tx,xmax)                
-                for (l,band) in enumerate(bndst.bands)
-                    
+                for (l,band) in enumerate(bndst.bands)                    
                     if l==1                    
                         if band.effMass>0
                    #         println("$Efs[i,j,k] ,$Tx")
@@ -310,3 +309,42 @@ for (i,iT) in enumerate(Ts)
 end
     return (Efs,sigmas,seebecks,kes,kees,kehs,kbis,klattice)#klattice
 end
+function differentialcond(band,xs,Ts,numofn,numofnn,tauTOTTx,xmax,Efs)
+    bandpre=band
+    Ex=collect(0.0:0.1:20.0)
+    sigmaDs=Array{Float64}(length(Ts),length(numofn),length(xs),length(Ex))    
+    #Efs=Array{Float64}(length(Ts),length(numofn),length(xs))     
+    for (i,Tx) in enumerate(Ts)
+        #println(rintln("T=$Tx")
+        band.var[1]=Tx    
+        tauTOTTx.variables[2]=Tx 
+        for (j,nx) in enumerate(numofn)
+            #println("n=$nx")
+            k=j
+            xsx=xs[j]
+            tauTOTTx.variables[7]=nx*1e6
+            tauTOTTx.variables[9]=numofnn[j]*1e6
+            #for (k,xsx) in enumerate(xs)                
+            sigmae=0.0                
+            band.var[2]=xsx
+            #println("x=$xsx")
+            tauTOTTx.variables[4]=xsx
+            #types.updatebnstTx(bndst)
+            types.bandTxupdate(band)   
+            for (Exi,Exx) in  enumerate(Ex)
+                #Efs[i,j,k]=Fermilevel_n(nx,bndst,Tx,xmax)
+                sigmaDs=sigmaD(tauTOTTx,band,Exx,Efs[i,j,k],Tx)   
+                #sigmae=isequal(presigmae,NaN) ? 0.0 : presigmae              
+            end                
+        end
+   end
+    return (Ex,sigmaDs)
+end
+function kltSA(gammaSA,GM,Tts,MSiGecgs,thetaD,omegaD,beta,delta,Eep,mds,Efsr)
+    klt_SA_A=Array{Float64,}(length(Ts))
+    for Tti in 1:length(Tts)
+        klt_SA_A[Tti]=klSA(gammaSA,GM,Tts[Tti],MSiGecgs,thetaD,omegaD,beta,delta,Eep,mds,Efsr[Tti,1,1]/kBe/Tts[Tti])   
+    end
+    return klt_SA_A
+end
+

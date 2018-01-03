@@ -10,10 +10,10 @@ end
 
 global g_T=0.0
 global g_Ef=0.0
-global g_band=parBandTx(0.0,0.0,0.0,[func1(x)=1],[func2(x)=1],[0.0,0.0])
+global g_band=parBandTx(1.0,0.0,0.0,0.0,[func1(x)=1],[func2(x)=1],[0.0,0.0])
 global g_intvalue=0.0
 
-nodes, weights = qnwlege(500, 0.0,10.0)
+nodes, weights = qnwlege(500, 3.0,7.0)
 
 #global g_Ef=0.0,g_band=parBandTx(0.0,0.0,0.0,[gen],[gen],[0.0,0.0]),g_intvalue=0.0
 #global g_Ef=0.0,g_band=parBandTx(0.0,0.0,0.0,[function ft1(x) return 1 end],[function ft2(x) return 1 end],[0.0,0.0]),g_intvalue=0.0
@@ -335,7 +335,7 @@ end
 
 function tauII2_func(epsilon0,epsilonhf,band,Ef,T,NII,md,E::Float64,bndst)
     global g_T,g_Ef,g_band,g_intvalue  
-    
+    #md=md/6^(2/3)
    # nodes, weights = qnwlege(500, 0.0,8.0)
     t=1#0.1e-18#7e-2
     min=Ef-20kBe*T<0 ? 0.0 : Ef-20kBe*T    
@@ -413,7 +413,13 @@ function tauII2_func(epsilon0,epsilonhf,band,Ef,T,NII,md,E::Array{Float64},bndst
 end
 
 function tauNI_func(epsilon0::Float64,md::Float64,NNI::Float64)
-    return (md*q)^2/(20*hbar^3*(4*pi*epsilon0)*NNI)
+    #println("tauNI_func")
+    temp=(md*q)^2/(20*hbar^3*(4*pi*epsilon0))
+    #println("md $md ")
+    #println("temp $temp")
+    tau=temp/NNI
+    #println("tau $tau")
+    return tau
 end
 #####################################################################
 #####################################################################

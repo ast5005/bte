@@ -18,23 +18,28 @@ using FastGaussQuadrature
 const hbar3=1.1728121633258218e-102
 const pi2=9.869604401089358
 
-nodes0, weights0= qnwlege(1500, 0.0,10.0)
-nodes1, weights1= qnwlege(100, 0.0,10.0)
+nodes0, weights0= qnwlege(500, 2.0,7.0)
+nodes1, weights1= qnwlege(100, 2.0,7.0)
 
 function getDOS_SingleBand_E(band::parBandTx,E::Float64)
-    effMass=0.0
-     if band.effMass<0.0 
-            if -E+band.offset>0 
-                effMass=-1*band.effMass
-                dos=sqrt(2)*sqrt((effMass)^3)/hbar3/pi2*sqrt((-E+band.offset)*q)
+    alpha=band.alpha/q
+    dos=0.0
+    if band.effMass<0.0 
+            if band.offset>E
+                effMass=-1*band.effMass                
+                #dos[i]=sqrt(2).*sqrt((effMass)^3)./hbar^3./pi^2.*sqrt((-E[i].+band.offset)*q)
+                Et=(-E.+band.offset)*q                                
+                dos=sqrt(2).*sqrt((effMass)^3)./hbar^3./pi^2.*sqrt(Et+alpha*Et.^2).*(1+2alpha*Et)
             #println("dos variable in getDOS_SingleBand_E meff<0 ",dos)
              else
-                 dos=0.0
+                dos=0.0
              end
         end
-        if band.effMass>0.0 
-            if E>=band.offset         
-                dos=sqrt(2)*(band.effMass)^1.5/hbar3/pi2*sqrt((E-band.offset)*q)
+    if band.effMass>0.0 
+            if E>=band.offset                         
+                #dos[i]=sqrt(2).*(band.effMass)^1.5./hbar^3./pi^2.*sqrt((E[i].-band.offset)*q)
+                Et=(E.-band.offset)*q
+                dos=sqrt(2).*sqrt((band.effMass)^3)./hbar^3./pi^2.*sqrt(Et+alpha*Et.^2).*(1+2alpha*Et)
             #println("dos variable in getDOS_SingleBand_E meff>0 ",dos)
              else
                 dos=0.0
@@ -71,30 +76,10 @@ function getDOS_SingleBand_E(band::parBandTx,E::Array{Float64,1})
     effMass=0.0
     n=length(E)
     dos=Array{Float64}(n) 
-    alpha=band.alpha/q
+    
     #println("here $alpha")
     for i in 1:n
-     if band.effMass<0.0 
-            if band.offset>E[i]
-                effMass=-1*band.effMass                
-                #dos[i]=sqrt(2).*sqrt((effMass)^3)./hbar^3./pi^2.*sqrt((-E[i].+band.offset)*q)
-                Et=(-E[i].+band.offset)*q                                
-                dos[i]=sqrt(2).*sqrt((effMass)^3)./hbar^3./pi^2.*sqrt(Et+alpha*Et.^2).*(1+2alpha*Et)
-            #println("dos variable in getDOS_SingleBand_E meff<0 ",dos)
-             else
-                dos[i]=0.0
-             end
-        end
-        if band.effMass>0.0 
-            if E[i]>=band.offset                         
-                #dos[i]=sqrt(2).*(band.effMass)^1.5./hbar^3./pi^2.*sqrt((E[i].-band.offset)*q)
-                Et=(E[i].-band.offset)*q
-                dos[i]=sqrt(2).*sqrt((band.effMass)^3)./hbar^3./pi^2.*sqrt(Et+alpha*Et.^2).*(1+2alpha*Et)
-            #println("dos variable in getDOS_SingleBand_E meff>0 ",dos)
-             else
-                dos[i]=0.0
-             end
-        end
+     dos[i]=getDOS_SingleBand_E(band,E[i])
     end
     return dos
 end
@@ -261,6 +246,10 @@ function Fermilevel_n(numberofn::Float64,bndst::BandStrucTx,Temp,xmax)
     #return (EfcalcM.minimum,EfcalcM.converged)
     return EfcalcM
 end
+function setintegralbound(Efmin::Float64,Efmax::Float64,Tmin::Float64,Tmax::Float64)
+    temp=Ef-700*kBe*Tmin
+    
+end
 #Fermi-Dirac Functions
 ##############################################################################################################
 ##############################################################################################################
@@ -294,7 +283,7 @@ function square_velocity_E(band,E::Float64)
     if band.effMass>0.0 
         if E>=band.offset   
             Et=(E-band.offset)
-            vel= 2./3./band.effMass.*Et*q.*(1+band.alpha.*Et)./(1+2*band.alpha.*Et)^2          
+            vel= (band.degen)^(2/3)*2./3./band.effMass.*Et*q.*(1+band.alpha.*Et)./(1+2*band.alpha.*Et)^2          
         else
             vel=0.0
         end
@@ -302,7 +291,7 @@ function square_velocity_E(band,E::Float64)
         if band.offset>E                          
             #dos[i]=sqrt(2).*sqrt((effMass)^3)./hbar^3./pi^2.*sqrt((-E[i].+band.offset)*q)
             Et=(-E.+band.offset)
-            vel= -2./3./band.effMass.*Et.*q.*(1+band.alpha.*Et)./(1+2*band.alpha.*Et)^2
+            vel= -band.degen^(2/3)*2./3./band.effMass.*Et.*q.*(1+band.alpha.*Et)./(1+2*band.alpha.*Et)^2
         else
             vel=0.0
         end
@@ -453,7 +442,7 @@ function get_tau(tau_electron_Base,E)
     tau=0.0
     tau_electron_Base.variables[3]=E
     for (i,methods) in enumerate(tau_electron_Base.tauMethods)
-        a=methods(tau_electron_Base.variables)         
+        #a=methods(tau_electron_Base.variables)         
         tau+=1./methods(tau_electron_Base.variables) 
     end
     return 1./tau
@@ -496,9 +485,10 @@ function sigmaD(tau_electron::types.tau_electron_Base,band,E,Ef,Temp)
     tau_electron.variables[5]=Ef
     tau_electron.variables[6]=band
     tau=get_tau(tau_electron,E)
-    v=(square_velocity_E(band,E))
+    v=(square_velocity_E(band,E))    
     return q.*q.*q.*getDOS_SingleBand_E(band,E).*tau.*v.*-fermiDerivativeTemp_Ef_E(Ef,Temp,E) 
 end
+
 #
 #
 #
@@ -664,15 +654,15 @@ function seebeck_Nominator(tau_electron::types.tau_electron_Base,band,Ef,Temp)
     Su=1.0
      if band.effMass>0                
         integrandseebeck_p(E)=sigmaD(tau_electron,band,E,Ef,Temp).*(E-Ef).*q
-        nodes, weights = qnwlege(100, band.offset,band.offset+20kBe*Temp)
-        a= do_quad(integrandseebeck_p,nodes, weights)
+        #nodes, weights = qnwlege(100, band.offset,band.offset+20kBe*Temp)
+        a= do_quad(integrandseebeck_p,nodes0, weights0)
         Su=a#quadgk(integrandseebeck,band.offset,band.offset+20kBe*Temp)[1]
         return -1/q/Temp*(Su)         
     elseif band.effMass<0
         min=band.offset-20kBe*Temp<0 ? 0.0 : band.offset-20kBe*Temp    
         integrandseebeck_n(E)=sigmaD(tau_electron,band,E,Ef,Temp).*(E-Ef).*q 
         nodes, weights = qnwlege(100,min,band.offset)
-        a= do_quad(integrandseebeck_n,nodes, weights)
+        a= do_quad(integrandseebeck_n,nodes1, weights1)
         Su=a#quadgk(integrandseebeck,min,band.offset)[1]
         return -1/q/Temp*(Su) 
     else
@@ -858,6 +848,80 @@ function Ii3(tauPHTOT::tau_phonon_Base,tauPHN::tau_phonon_Base,tauPHR::tau_phono
 end
 #
 #
+#####################################################################################################################################
+function tauPH_U_SAT(gamma::Float64,intx::Array{Float64},T::Float64,M::Float64,
+    theta::Float64,omegaD::Float64,beta::Float64,delta::Float64)
+    #intx is different from x in oither phonon calculations intx=omega/omegaD
+    Mcgs=M
+    #println("Mcgs= ",Mcgs)
+    deltacgs=delta*100
+    #println("deltacgs= ",deltacgs)
+    #println("1/Mcgs/deltacgs^2/(theta/T)= ",(1/Mcgs/deltacgs^2/(theta/T)))
+    return 1./((3.264e-2)*((1+beta*(5/9))/(1+beta))*gamma^2.*intx.^2./Mcgs/deltacgs^2/(theta/T))    
+end
+
+function tauPH_EP_SAT(Eep::Float64,md::Float64,x::Array{Float64},Ef::Float64,
+    T::Float64,M::Float64,theta::Float64,delta::Float64)
+    eta=Ef#Ef*q/kB/T
+    deltacgs=delta*100
+    Mcgs=M
+    A=6.76e26(md/me)^2*deltacgs^2/Mcgs
+    y=3.72e9(md/me)*deltacgs^2*theta
+    D=1.68e-11/(md/me)/deltacgs^2/theta
+    alphat=thetaD/T
+    #println("alphat ",alphat)
+    lambda=6
+    ex1=1+exp.(-alphat*y+eta-D*alphat*x.*x+alphat.*x/2)
+    ex2=1+exp.(-alphat*y+eta-D*alphat*x.*x-alphat.*x/2)    
+    ext=ex1./ex2
+    logt=log.(ext)
+    return 1./(lambda*(A*Eep^2/alphat).*logt) 
+end
+
+function tauPH_PD_SAT(GM::Float64,intx::Array{Float64},theta::Float64)
+    return 1./(6.17e11*theta*GM.*intx.^4)
+end
+
+
+function I1(gammaSA,GM,Tt,MSiGecgs,thetaD,omegaD,beta,delta,Eep,mds,etha)
+    alphat=thetaD/Tt
+    tauPH_U_SA_Af(x)=tauPH_U_SAT(gammaSA,x,Tt,MSiGecgs,thetaD,omegaD,beta,delta)
+    #tauPH_N_SA_Af(x)=tauPH_U_SA_A(x)/(1+beta)
+    tauPH_EP_SA_Af(x)=tauPH_EP_SAT(Eep,mds,x,etha,Tt,MSiGecgs,thetaD,delta)
+    tauPH_PD_SA_Af(x)=tauPH_PD_SAT(GM,x,thetaD)
+    tauPH_C_SA_Af(x)=1./((beta+1)./tauPH_U_SA_Af(x)+1./tauPH_EP_SA_Af(x)+1./tauPH_PD_SA_Af(x))    
+    integrand(x)=tauPH_C_SA_Af(x).*(x.^4)*alphat^2.*exp.(alphat*x)./(exp.(alphat*x)-1).^2    
+    nodes, weights = qnwlege(1000,0.0,1.0)
+    return a= do_quad(integrand,nodes, weights)    
+end
+#
+function I2(gammaSA,GM,Tt,MSiGecgs,thetaD,omegaD,beta,delta,Eep,mds,etha)
+    alphat=thetaD/Tt
+    tauPH_U_SA_Af(x)=tauPH_U_SAT(gammaSA,x,Tt,MSiGecgs,thetaD,omegaD,beta,delta)
+    #tauPH_N_SA_Af(x)=tauPH_U_SA_A(x)/(1+beta)
+    tauPH_EP_SA_Af(x)=tauPH_EP_SAT(Eep,mds,x,etha,Tt,MSiGecgs,thetaD,delta)
+    tauPH_PD_SA_Af(x)=tauPH_PD_SAT(GM,x,thetaD)
+    tauPH_C_SA_Af(x)=1./((beta+1)./tauPH_U_SA_Af(x)+1./tauPH_EP_SA_Af(x)+1./tauPH_PD_SA_Af(x))    
+    integrand(x)=beta*tauPH_C_SA_Af(x)./tauPH_U_SA_Af(x).*(x.^4)*alphat^2.*exp.(alphat*x)./(exp.(alphat*x)-1).^2    
+    nodes, weights = qnwlege(1000,0.0,1.0)
+    return a= do_quad(integrand,nodes, weights)    
+end
+#
+function I3(gammaSA,GM,Tt,MSiGecgs,thetaD,omegaD,beta,delta,Eep,mds,etha)
+    alphat=thetaD/Tt
+    tauPH_U_SA_Af(x)=tauPH_U_SAT(gammaSA,x,Tt,MSiGecgs,thetaD,omegaD,beta,delta)
+    #tauPH_N_SA_Af(x)=tauPH_U_SA_A(x)/(1+beta)
+    tauPH_EP_SA_Af(x)=tauPH_EP_SAT(Eep,mds,x,etha,Tt,MSiGecgs,thetaD,delta)
+    tauPH_PD_SA_Af(x)=tauPH_PD_SAT(GM,x,thetaD)
+    tauPH_C_SA_Af(x)=1./((beta+1)./tauPH_U_SA_Af(x)+1./tauPH_EP_SA_Af(x)+1./tauPH_PD_SA_Af(x))    
+    integrand(x)=beta*1./tauPH_U_SA_Af(x).*
+    (1-beta*tauPH_C_SA_Af(x)./tauPH_U_SA_Af(x)).*(x.^4)*alphat^2.*exp.(alphat*x)./(exp.(alphat*x)-1).^2    
+    nodes, weights = qnwlege(1000,0.0,1.0)
+    return a= do_quad(integrand,nodes, weights)    
+end
+#
+#
+#####################################################################################################################################
 function kl(tauPHTOTL::tau_phonon_Base,tauPHNL::tau_phonon_Base,tauPHRL::tau_phonon_Base,
     tauPHTOTTx::tau_phonon_Base,tauPHNTx::tau_phonon_Base,tauPHRTx::tau_phonon_Base,
     tauPHTOTTy::tau_phonon_Base,tauPHNTy::tau_phonon_Base,tauPHRTy::tau_phonon_Base,
@@ -876,6 +940,13 @@ function kl(tauPHTOTL::tau_phonon_Base,tauPHNL::tau_phonon_Base,tauPHRL::tau_pho
     kTy=(kB^4*T^3/2/pi/pi/hbar^3)*(ITy1+ITy2*ITy2/ITy3)/v[3]
     kl=(kL+kTx+kTy)/3.0 
     return kl#(IL1,ITx1,IL2,ITx2,IL3,ITx3,kL/3,kTx/3,kTy/3,kl)#kl#(IL1,ITx1,IL2,ITx2,IL3,ITx3,kL/3,kTx/3,kTy/3,kl)#(kL+kTx+kTy)/3.0    
+end
+
+function klSA(gammaSA,GM,Tt,MSiGecgs,thetaD,omegaD,beta,delta,Eep,mds,etha)    
+    I1t=I1(gammaSA,GM,Tt,MSiGecgs,thetaD,omegaD,beta,delta,Eep,mds,etha)
+    I2t=I2(gammaSA,GM,Tt,MSiGecgs,thetaD,omegaD,beta,delta,Eep,mds,etha)
+    I3t=I3(gammaSA,GM,Tt,MSiGecgs,thetaD,omegaD,beta,delta,Eep,mds,etha)
+    return 4.67e-2*(thetaD^2/delta/100)*(I1t+I2t.^2/I3t)
 end
 #Lattice Thermal Conductivity
 ##############################################################################################################
