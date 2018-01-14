@@ -10,7 +10,7 @@ end
 
 global g_T=0.0
 global g_Ef=0.0
-global g_band=parBandTx(1.0,0.0,0.0,0.0,[func1(x)=1],[func2(x)=1],[0.0,0.0])
+global g_band=parBandTx(true,1.0,0.0,0.0,0.0,[func1(x)=1],[func2(x)=1],[func3(x)=0.0],[0.0,0.0])
 global g_intvalue=0.0
 
 nodes, weights = qnwlege(500, 3.0,7.0)
@@ -130,7 +130,7 @@ end
 
 function tauAC_func(Cl,Da,T,mdx,E::Float64,band)  
     #println("Reached tauAC_func v1")
-    md=band.effMass
+    md=band.effMass#/band.degen^(2/3)
     t=1#1e1
     if md>0   
         #println("tauAC_func md>0")
@@ -158,7 +158,7 @@ end
 function tauAC_func(Cl::Float64,Da::Float64,Dv::Float64,T::Float64,mdx::Float64,E::Float64,band::parBandTx)      
     #println("Reached tauAC_func v2")
     a=band.alpha
-    md=band.effMass
+    md=band.effMass#/band.degen^(2/3)
     t=1
     Da=Da*q
     Dv=Dv*q
@@ -335,7 +335,7 @@ end
 
 function tauII2_func(epsilon0,epsilonhf,band,Ef,T,NII,md,E::Float64,bndst)
     global g_T,g_Ef,g_band,g_intvalue  
-    #md=md/6^(2/3)
+    md=md#/band.degen^(2/3)
    # nodes, weights = qnwlege(500, 0.0,8.0)
     t=1#0.1e-18#7e-2
     min=Ef-20kBe*T<0 ? 0.0 : Ef-20kBe*T    

@@ -101,8 +101,10 @@ end
 #
 function getDOS_MultiBand_E_Total(bndst,E)
     totalDOS=0.0
+    degen=1.0
     for band in bndst.bands
-        totalDOS+=getDOS_SingleBand_E(band,E)
+        degen=band.onevalleyeffmass ? band.degen :1.0
+        totalDOS+=getDOS_SingleBand_E(band,E)*degen
     end
     return totalDOS
 end
@@ -280,10 +282,12 @@ return vel
 end
 function square_velocity_E(band,E::Float64) 
     vel=0.0
+    degen=band.onevalleyeffmass ? band.degen : 1.0
     if band.effMass>0.0 
         if E>=band.offset   
             Et=(E-band.offset)
-            vel= (band.degen)^(2/3)*2./3./band.effMass.*Et*q.*(1+band.alpha.*Et)./(1+2*band.alpha.*Et)^2          
+            #vel= (band.degen)^(2/3)*2./3./band.effMass.*Et*q.*(1+band.alpha.*Et)./(1+2*band.alpha.*Et)^2    
+            vel=2./3./band.effMass/degen.*Et*q.*(1+band.alpha.*Et)./(1+2*band.alpha.*Et)^2    
         else
             vel=0.0
         end
@@ -291,7 +295,8 @@ function square_velocity_E(band,E::Float64)
         if band.offset>E                          
             #dos[i]=sqrt(2).*sqrt((effMass)^3)./hbar^3./pi^2.*sqrt((-E[i].+band.offset)*q)
             Et=(-E.+band.offset)
-            vel= -band.degen^(2/3)*2./3./band.effMass.*Et.*q.*(1+band.alpha.*Et)./(1+2*band.alpha.*Et)^2
+            #vel= -band.degen^(2/3)*2./3./band.effMass.*Et.*q.*(1+band.alpha.*Et)./(1+2*band.alpha.*Et)^2
+            vel=-2./3./band.effMass/degen.*Et.*q.*(1+band.alpha.*Et)./(1+2*band.alpha.*Et)^2
         else
             vel=0.0
         end
@@ -363,6 +368,7 @@ function Numofn2T(band,Ef,Temp::Float64,xmax::Float64)
     return a[1]
 end
 function Numofn2(band,Ef,Temp::Float64,xmax::Float64)
+    degen=band.onevalleyeffmass ? band.degen :1.0
     gridx=40
     if band.effMass>=0.0         
         integrandp_Numofn2(E)=q*getDOS_SingleBand_E(band,E).*(-1*fermiStat_Temp_Ef_E(Temp,Ef,E))
@@ -383,7 +389,7 @@ function Numofn2(band,Ef,Temp::Float64,xmax::Float64)
         a= do_quad(integrandn_Numofn2,nodes, weights)
         
     end    
-    return a[1]
+    return a[1]*degen
 end
 
 function NumofnDerivativeEf(band,Ef,Temp::Float64,xmax::Float64)
@@ -407,7 +413,9 @@ function NumofnMultiBand(bndst,Ef,Temp::Float64,xmax::Float64)
 end
 function NumofnMultiBand2(bndst,Ef,Temp::Float64,xmax::Float64)
     totalnumofn=0.0
+    degen=1.0
     for band in bndst.bands
+        degen=band.onevalleyeffmass ? band.degen : 1.0
         totalnumofn=totalnumofn+Numofn2(band,Ef,Temp,xmax) 
     end
     return totalnumofn 
@@ -487,6 +495,7 @@ function sigmaD(tau_electron::types.tau_electron_Base,band,E,Ef,Temp)
     tau=get_tau(tau_electron,E)
     v=(square_velocity_E(band,E))    
     return q.*q.*q.*getDOS_SingleBand_E(band,E).*tau.*v.*-fermiDerivativeTemp_Ef_E(Ef,Temp,E) 
+    #q.*q.*q.*getDOS_SingleBand_E(band,E).*tau#.*v.*-fermiDerivativeTemp_Ef_E(Ef,Temp,E)
 end
 
 #
@@ -526,17 +535,19 @@ end
 #Electrical Conductivity
 
 function sigma(tau_electron::types.tau_electron_Base,band,Ef,Temp)    
+    degen=band.onevalleyeffmass ? band.degen : 1.0
     if band.effMass>0                
         integrandp_sigma(E)=sigmaD(tau_electron::types.tau_electron_Base,band,E,Ef,Temp) 
         #nodes0, weights0= qnwlege(100, band.offset,band.offset+200kBe*Temp)
-        a= do_quad(integrandp_sigma,nodes0, weights0)        
-        return a#quadgk(integrandp_sigma,0.0,Inf)[1]#a#quadgk(integrand,band.offset,band.offset+20kBe*Temp)[1]
+        a= do_quad(integrandp_sigma,nodes0, weights0)  
+        #println("a=$a")
+        return a*degen#quadgk(integrandp_sigma,0.0,Inf)[1]#a#quadgk(integrand,band.offset,band.offset+20kBe*Temp)[1]
     elseif band.effMass<0
         min=band.offset-200kBe*Temp<0 ? 0.0 : band.offset-200kBe*Temp    
         integrandn_sigma(E)=sigmaD(tau_electron::types.tau_electron_Base,band,E,Ef,Temp) 
         #nodes0, weights0 = qnwlege(100, min,band.offset)
         a= do_quad(integrandn_sigma,nodes0, weights0)         
-        return a#quadgk(integrandn_sigma,0.0,Inf)[1]#a#quadgk(integrand,min,band.offset)[1]
+        return a*degen#quadgk(integrandn_sigma,0.0,Inf)[1]#a#quadgk(integrand,min,band.offset)[1]
     else
         error("Band EffMass cannot be =0")
         return 0.0
@@ -652,19 +663,20 @@ end
 #
 function seebeck_Nominator(tau_electron::types.tau_electron_Base,band,Ef,Temp)    
     Su=1.0
+    degen=band.onevalleyeffmass ? band.degen : 1.0
      if band.effMass>0                
         integrandseebeck_p(E)=sigmaD(tau_electron,band,E,Ef,Temp).*(E-Ef).*q
         #nodes, weights = qnwlege(100, band.offset,band.offset+20kBe*Temp)
         a= do_quad(integrandseebeck_p,nodes0, weights0)
         Su=a#quadgk(integrandseebeck,band.offset,band.offset+20kBe*Temp)[1]
-        return -1/q/Temp*(Su)         
+        return -1/q/Temp*(Su)*degen         
     elseif band.effMass<0
         min=band.offset-20kBe*Temp<0 ? 0.0 : band.offset-20kBe*Temp    
         integrandseebeck_n(E)=sigmaD(tau_electron,band,E,Ef,Temp).*(E-Ef).*q 
         nodes, weights = qnwlege(100,min,band.offset)
         a= do_quad(integrandseebeck_n,nodes1, weights1)
         Su=a#quadgk(integrandseebeck,min,band.offset)[1]
-        return -1/q/Temp*(Su) 
+        return -1/q/Temp*(Su)*degen 
     else
         error("Band EffMass cannot be =0")
         return 0.0
@@ -723,19 +735,20 @@ end
 #Thermal Conductivity
 
 function keint(tau_electron::types.tau_electron_Base,band,Ef,Temp)
+    degen=band.onevalleyeffmass ? band.degen : 1.0
     if band.effMass>0                
         integrandp_keint(E)=sigmaD(tau_electron,band,E,Ef,Temp).*((E-Ef)*q).^2 
         nodes, weights = qnwlege(100, band.offset,band.offset+20kBe*Temp)
         a= do_quad(integrandp_keint,nodes, weights)
         #Su=a#quadgk(integrandseebeck,band.offset,band.offset+20kBe*Temp)[1]
-        return a        
+        return a*degen        
     elseif band.effMass<0
         min=band.offset-20kBe*Temp<0 ? 0.0 : band.offset-20kBe*Temp    
         integrandn_keint(E)=sigmaD(tau_electron,band,E,Ef,Temp).*((E-Ef)*q).^2
         nodes, weights = qnwlege(100,min,band.offset)
         a= do_quad(integrandn_keint,nodes, weights)
         #Su=a#quadgk(integrandseebeck,min,band.offset)[1]
-        return a
+        return a*degen
     else
         error("Band EffMass cannot be =0")
         return 0.0

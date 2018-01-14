@@ -14,17 +14,19 @@ type parBand{T}
   alpha::T
   offset::T
   degen::T
+  #onevalleyeffmass::Boolean  
     
 end
 type parBandTx
+    onevalleyeffmass::Bool # make i t true if effmass variable is one valley effective mass false if it includes all degenerate valleys
     degen::Float64
     effMass::Float64
     alpha::Float64
     offset::Float64
     funsofoffset::Vector{Function} 
     funsofeffMass::Vector{Function}
-    var::Vector{Float64}
-    
+    funsofalpha::Vector{Function}
+    var::Vector{Float64}    
 end
 
 
@@ -56,6 +58,9 @@ function bandTxupdate(bandTx::parBandTx)
     for method in bandTx.funsofeffMass
         bandTx.effMass=method(bandTx.var) 
     end
+        for method in bandTx.funsofalpha
+        bandTx.alpha=method(bandTx.var) 
+    end
 end
 function updatebnstTx(bndstTx::BandStrucTx)
     for bandTx in bndstTx.bands
@@ -64,13 +69,14 @@ function updatebnstTx(bndstTx::BandStrucTx)
     end
 end
 
-function bandUpdate(bndst::BandStruc,funsofoffset::Vector{Function},funsofeffMass::Vector{Function},var::Vector{Float64})
+function bandUpdate(bndst::BandStruc,funsofoffset::Vector{Function},funsofeffMass::Vector{Function},funsofalpha::Vector{Function},var::Vector{Float64})
     #if length(bndst.bands)<4
     #    error("Ecpected band structure inludes 4 bands")
     #else
         for (i,band) in enumerate(bndst.bands)
             band.offset=funsofoffset[i](var)
             band.effMass=funsofeffMass[i](var)
+            band.alpha=funsofalpha[i](var)
         end
    # end
 end
