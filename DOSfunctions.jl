@@ -287,7 +287,7 @@ function square_velocity_E(band,E::Float64)
         if E>=band.offset   
             Et=(E-band.offset)
             #vel= (band.degen)^(2/3)*2./3./band.effMass.*Et*q.*(1+band.alpha.*Et)./(1+2*band.alpha.*Et)^2    
-            vel=2./3./band.effMass/degen.*Et*q.*(1+band.alpha.*Et)./(1+2*band.alpha.*Et)^2    
+            vel=2./3./band.effMass/degen^(2/3).*Et*q.*(1+band.alpha.*Et)./(1+2*band.alpha.*Et)^2    
         else
             vel=0.0
         end
@@ -296,7 +296,7 @@ function square_velocity_E(band,E::Float64)
             #dos[i]=sqrt(2).*sqrt((effMass)^3)./hbar^3./pi^2.*sqrt((-E[i].+band.offset)*q)
             Et=(-E.+band.offset)
             #vel= -band.degen^(2/3)*2./3./band.effMass.*Et.*q.*(1+band.alpha.*Et)./(1+2*band.alpha.*Et)^2
-            vel=-2./3./band.effMass/degen.*Et.*q.*(1+band.alpha.*Et)./(1+2*band.alpha.*Et)^2
+            vel=-2./3./band.effMass/degen^(2/3).*Et.*q.*(1+band.alpha.*Et)./(1+2*band.alpha.*Et)^2
         else
             vel=0.0
         end
@@ -671,10 +671,10 @@ function seebeck_Nominator(tau_electron::types.tau_electron_Base,band,Ef,Temp)
         Su=a#quadgk(integrandseebeck,band.offset,band.offset+20kBe*Temp)[1]
         return -1/q/Temp*(Su)*degen         
     elseif band.effMass<0
-        min=band.offset-20kBe*Temp<0 ? 0.0 : band.offset-20kBe*Temp    
+        min=band.offset-10kBe*Temp<0 ? 0.0 : band.offset-10kBe*Temp    
         integrandseebeck_n(E)=sigmaD(tau_electron,band,E,Ef,Temp).*(E-Ef).*q 
-        nodes, weights = qnwlege(100,min,band.offset)
-        a= do_quad(integrandseebeck_n,nodes1, weights1)
+        nodes, weights = qnwlege(1000,min,band.offset)
+        a= do_quad(integrandseebeck_n,nodes0, weights0)
         Su=a#quadgk(integrandseebeck,min,band.offset)[1]
         return -1/q/Temp*(Su)*degen 
     else
@@ -837,7 +837,8 @@ end
 function Ii1(tauPHTOT::tau_phonon_Base,thetai::Float64,T::Float64)
     tauPHTOT.variables[2]=T
     integrand(x)=get_tau_phonon(tauPHTOT,x).*(x.^4).*exp.(x)./(exp.(x)-1).^2
-    nodes, weights = qnwlege(100,0,thetai/T)
+    #integrand(x)=get_tau_phonon(tauPHTOT,x)#(x.^4).*exp.(x)./(exp.(x)-1).^2#get_tau_phonon(tauPHTOT,x).*(x.^4).*exp.(x)./(exp.(x)-1).^2
+    nodes, weights = qnwlege(1000,0,thetai/T)
     return a= do_quad(integrand,nodes, weights)    
 end
 #
@@ -855,8 +856,9 @@ function Ii3(tauPHTOT::tau_phonon_Base,tauPHN::tau_phonon_Base,tauPHR::tau_phono
     tauPHTOT.variables[2]=T
     tauPHN.variables[2]=T
     tauPHR.variables[2]=T
-    integrand(x)=get_tau_phonon(tauPHTOT,x)./get_tau_phonon(tauPHN,x)./get_tau_phonon(tauPHR,x).*(x.^4).*exp.(x)./(exp.(x)-1).^2
-    nodes, weights = qnwlege(100,0,thetai/T)
+    #integrand(x)=get_tau_phonon(tauPHTOT,x)./get_tau_phonon(tauPHN,x)./get_tau_phonon(tauPHR,x).*(x.^4).*exp.(x)./(exp.(x)-1).^2
+    integrand(x)=get_tau_phonon(tauPHTOT,x)./get_tau_phonon(tauPHN,x)./get_tau_phonon(tauPHR,x).*(x.^4).*exp.(x)./((exp.(x)-1).^2)
+    nodes, weights = qnwlege(100,1e-4,thetai/T)
     return a= do_quad(integrand,nodes, weights)    
 end
 #
@@ -933,7 +935,6 @@ function I3(gammaSA,GM,Tt,MSiGecgs,thetaD,omegaD,beta,delta,Eep,mds,etha)
     return a= do_quad(integrand,nodes, weights)    
 end
 #
-#
 #####################################################################################################################################
 function kl(tauPHTOTL::tau_phonon_Base,tauPHNL::tau_phonon_Base,tauPHRL::tau_phonon_Base,
     tauPHTOTTx::tau_phonon_Base,tauPHNTx::tau_phonon_Base,tauPHRTx::tau_phonon_Base,
@@ -952,7 +953,7 @@ function kl(tauPHTOTL::tau_phonon_Base,tauPHNL::tau_phonon_Base,tauPHRL::tau_pho
     kTx=(kB^4*T^3/2/pi/pi/hbar^3)*(ITx1+ITx2*ITx2/ITx3)/v[2]
     kTy=(kB^4*T^3/2/pi/pi/hbar^3)*(ITy1+ITy2*ITy2/ITy3)/v[3]
     kl=(kL+kTx+kTy)/3.0 
-    return kl#(IL1,ITx1,IL2,ITx2,IL3,ITx3,kL/3,kTx/3,kTy/3,kl)#kl#(IL1,ITx1,IL2,ITx2,IL3,ITx3,kL/3,kTx/3,kTy/3,kl)#(kL+kTx+kTy)/3.0    
+    return (IL1,ITx1,IL2,ITx2,IL3,ITx3,kL/3,kTx/3,kTy/3,kl)#kl#(IL1,ITx1,IL2,ITx2,IL3,ITx3,kL/3,kTx/3,kTy/3,kl)#(kL+kTx+kTy)/3.0    
 end
 
 function klSA(gammaSA,GM,Tt,MSiGecgs,thetaD,omegaD,beta,delta,Eep,mds,etha)    

@@ -29,7 +29,6 @@ type parBandTx
     var::Vector{Float64}    
 end
 
-
 type BandStrucTx
     bands::Vector{parBandTx}
     var::Vector{Float64}

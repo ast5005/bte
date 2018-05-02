@@ -323,6 +323,36 @@ function tauPOP2_func(epsilon0,epsilonhf,band,Ef,T,md,E::Float64,opPhE)
     brac=Ex>opPhE ? N0*sqrt(1+opPhE/Ex)+(N0+1)*(sqrt(1-opPhE/Ex))-((N0)*opPhE/Ex)*asinh((Ex/opPhE)^0.5)+((N0+1)*opPhE/Ex)*asinh((Ex/opPhE-1)^0.5) : 1    
     return mul/brac
 end
+function tauPOP3_func(epsilon0,epsilonhf,band,Ef,T,md,E::Float64,opPhE)    
+    t=1
+    #opPhE=opPhE
+    Ex=0
+    brac=0
+    epsilon=8.85e-12
+    N0=1/(exp(q*opPhE/kB/(T))-1.0)      
+    mul=(4*pi*epsilon0*hbar)/(q*q*q*opPhE/hbar*(epsilon0/epsilonhf-1))#(4*pi*epsilon0*hbar)/(q*q*q*opPhE/hbar*((epsilon0/epsilonhf)-1))
+    if md>0
+        if E-band.offset < 0 
+            return 0    
+        else     
+            mul=mul*sqrt(2*(E-band.offset)*q/md)
+            Ex=E-band.offset 
+        end    
+    elseif md<0
+        if -E+band.offset < 0 
+            return 0    
+        else     
+            mul=mul*sqrt(-2*(-E+band.offset)*q/md)
+            Ex=-E+band.offset
+        end
+    else
+        mul=1
+    end
+    hyp1=log(sqrt(Ex/opPhE)+sqrt(1+Ex/opPhE))
+    hyp2=log(sqrt(Ex/opPhE-1)+sqrt(Ex/opPhE))
+    brac=Ex==opPhE ? 0.0 : N0*sqrt(1+opPhE/Ex)+(N0+1)*(sqrt(1-opPhE/Ex))-((N0)*opPhE/Ex)*hyp1+((N0+1)*opPhE/Ex)*hyp2    
+    return mul/brac
+end
 
 function tauPOP2_func(epsilon0,epsilonhf,band,Ef,T,md,E::Array{Float64},opPhE)
     tau=Array{Float64}(length(E))
@@ -332,7 +362,14 @@ function tauPOP2_func(epsilon0,epsilonhf,band,Ef,T,md,E::Array{Float64},opPhE)
     end
     return tau
 end
-
+function tauPOP3_func(epsilon0,epsilonhf,band,Ef,T,md,E::Array{Float64},opPhE)
+    tau=Array{Float64}(length(E))
+    for (i,Ex) in enumerate(E)
+        temp= tauPOP2_func(epsilon0,epsilonhf,band,Ef,T,md,Ex,opPhE) 
+        tau[i]=  temp>0 ? temp :0.0 
+    end
+    return tau
+end
 function tauII2_func(epsilon0,epsilonhf,band,Ef,T,NII,md,E::Float64,bndst)
     global g_T,g_Ef,g_band,g_intvalue  
     md=md#/band.degen^(2/3)
@@ -460,7 +497,7 @@ function tauPH_NL(gamma::Float64,V::Float64,x::Array{Float64},T::Float64,M::Floa
 end
 function tauPH_NT(gamma::Float64,V::Float64,x::Array{Float64},T::Float64,M::Float64,v::Float64)
     
-    return M*v^5*hbar^4./(kB^5*gamma^2*V*x*T^5)    
+    return M*v^5*hbar^4./(kB^5*gamma^2*V*x.*x*T^5)    
 end
 function tauPH_U(gamma::Float64,x::Array{Float64},T::Float64,M::Float64,v::Float64,theta::Float64)
   
@@ -490,6 +527,10 @@ function tauPH_EP_SA(Eep::Float64,md::Float64,x::Array{Float64},Ef::Float64,
 end
 function tauPH_ALL(MI::Float64,MII::Float64,y::Float64,V::Float64,x::Array{Float64},T::Float64,M::Float64,v::Float64)
      Gamma=(1-y)*((MI-M)/M)^2+y*((MII-M)/M)^2
+    return 1./(Gamma*V/v^3./4./pi)./(kB*T*x/hbar).^4 #4*pi*v^3*hbar^4./(Gamma*V*(kB*T*x).^4)
+end
+function tauPH_ALL(Gamma::Float64,V::Float64,x::Array{Float64},T::Float64,v::Float64)
+     #Gamma=(1-y)*((MI-M)/M)^2+y*((MII-M)/M)^2
     return 1./(Gamma*V/v^3./4./pi)./(kB*T*x/hbar).^4 #4*pi*v^3*hbar^4./(Gamma*V*(kB*T*x).^4)
 end
 function tauPH_B(v::Float64,alpha::Float64,d::Float64)
