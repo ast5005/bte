@@ -1,7 +1,7 @@
 #userfunctions.jl
 
 using constants
-using Cubature
+
 using QuantEcon
 
 function gen(x)
@@ -10,7 +10,10 @@ end
 
 global g_T=0.0
 global g_Ef=0.0
-global g_band=parBandTx(true,1.0,0.0,0.0,0.0,[func1(x)=1],[func2(x)=1],[func3(x)=0.0],[0.0,0.0])
+func1(x)=1.0
+func2(x)=1.0
+func3(x)=1.0
+global g_band=parBandTx(true,1.0,0.0,0.0,0.0,[func1::Function],[func2::Function],[func3::Function],[0.0,0.0])
 global g_intvalue=0.0
 
 nodes, weights = qnwlege(500, 3.0,7.0)
@@ -65,7 +68,6 @@ function EgSiGe(T::Float64,x::Float64)
     #(0.8941+0.042*(1-x)+0.1961*(1-x)^2-(0.00037*x+0.00023*(1-x)));
 end
 function ClSiGe(x::Float64,T::Float64)
-    return vSiGe(x).^2.*roSiGe(x)
 end
 function DefP(md::Float64)
     return  15#7.0
@@ -77,8 +79,8 @@ function MSiGe(x::Float64)
     return (28.086e-3*(1-x)+72.59e-3*x)/Nav
 end
 function vSiGe(x::Float64)
-    #return kB*((VSiGe(x)./6/pi/pi)^(1.0/3.0))*586/hbar
-    return kB*((VSiGe(x)./6/pi/pi)^(1.0/3.0))*thetaAlloySiGe(x)/hbar
+    #return kB*((VSiGe(x) ./6/pi/pi)^(1.0/3.0))*586/hbar
+    return kB*((VSiGe(x) ./6/pi/pi)^(1.0/3.0))*thetaAlloySiGe(x)/hbar
 end
 function thetaAlloySiGe(x::Float64)
     Nav=6.0221415e23
@@ -140,7 +142,7 @@ function tauAC_func(Cl,Da,T,mdx,E::Float64,band)
         else        
             #println("tauAC_func E-band.offset>0")      
             
-            return hbar^4*Cl*pi/(sqrt(2*(E-band.offset)*q).*abs(md)^1.5.*(Da*q)^2.*(kB*T))
+            return hbar^4*Cl*pi/(sqrt(2*(E-band.offset)*q) .*abs(md)^1.5.*(Da*q)^2 .*(kB*T))
         end
     else
         #println("tauAC_func md<0")
@@ -170,8 +172,8 @@ function tauAC_func(Cl::Float64,Da::Float64,Dv::Float64,T::Float64,mdx::Float64,
             aq=a/q
             Eta=Et*aq
             De=(1-Eta/(1+2*Eta)*(1-Dv/Da))^2-8/3*(Eta*(1+Eta)*Dv)/((1+2*Eta)^2*Da)            
-            return 1./(pi*kB*T*Da^2/Cl/hbar*getDOS_SingleBand_E(band,E)*De) 
-            #hbar^4*Cl*pi/(sqrt(2*((E-band.offset)*q+aq*Et^2))*(1+2*Et*aq).*abs(md)^1.5*(Da*q)^2.*(kB*T))/De
+            return 1 ./(pi*kB*T*Da^2/Cl/hbar*getDOS_SingleBand_E(band,E)*De) 
+            #hbar^4*Cl*pi/(sqrt(2*((E-band.offset)*q+aq*Et^2))*(1+2*Et*aq) .*abs(md)^1.5*(Da*q)^2 .*(kB*T))/De
         end
     else
         if -E+band.offset < 0
@@ -181,7 +183,7 @@ function tauAC_func(Cl::Float64,Da::Float64,Dv::Float64,T::Float64,mdx::Float64,
             aq=a/q
             Eta=Et*a
             De=(1-Eta./(1+2*Eta)*(1-Dv/Da))^2-8/3*(Eta*(1+Eta)*Dv)/((1+2*Eta)^2*Da)
-            return 1./(pi*kB*T*Da^2/Cl/hbar*getDOS_SingleBand_E(band,E)*De) 
+            return 1 ./(pi*kB*T*Da^2/Cl/hbar*getDOS_SingleBand_E(band,E)*De) 
             #hbar^4*Cl*pi/(sqrt(2*((-E+band.offset)*q+aq*Et^2))*(1+2*Et*aq)*abs(md)^1.5*(Da*q)^2*(kB*T))/De
         end
     end
@@ -214,26 +216,26 @@ function tauAC_func(Cl,T,md,E::Float64,band)
     end
 end
 function tauAC_func(Cl,Da,T,md,E::Array{Float64},band)
-    tau=Array{Float64}(length(E))
+    tau=Array{Float64}(undef,length(E))
     for (i,Ex) in enumerate(E)
         temp= tauAC_func(Cl,Da,T,md,Ex,band) 
-        tau[i]=  temp>0 ? temp :0.0 
+        tau[i]=  temp>0 ? temp : 0.0 
     end
     return tau
 end
 function tauAC_func(Cl::Float64,Da::Float64,Dv::Float64,T::Float64,md::Float64,E::Array{Float64},band::parBandTx)
-    tau=Array{Float64}(length(E))
+    tau=Array{Float64}(undef,length(E))
     for (i,Ex) in enumerate(E)
         temp= tauAC_func(Cl,Da,Dv,T,md,Ex,band) 
-        tau[i]=  temp>0.0 ? temp :0.0 
+        tau[i]=  temp>0.0 ? temp : 0.0 
     end
     return tau
 end
 function tauAC_func(Cl,T,md,E::Array{Float64},band)
-    tau=Array{Float64}(length(E))
+    tau=Array{Float64}(undef,length(E))
     for (i,Ex) in enumerate(E)
         temp= tauAC_func(Cl,T,md,Ex,band) 
-        tau[i]=  temp>0 ? temp :0.0 
+        tau[i]=  temp>0 ? temp : 0.0 
     end
     return tau
 end
@@ -355,18 +357,18 @@ function tauPOP3_func(epsilon0,epsilonhf,band,Ef,T,md,E::Float64,opPhE)
 end
 
 function tauPOP2_func(epsilon0,epsilonhf,band,Ef,T,md,E::Array{Float64},opPhE)
-    tau=Array{Float64}(length(E))
+    tau=Array{Float64}(undef,length(E))
     for (i,Ex) in enumerate(E)
         temp= tauPOP2_func(epsilon0,epsilonhf,band,Ef,T,md,Ex,opPhE) 
-        tau[i]=  temp>0 ? temp :0.0 
+        tau[i]=  temp>0 ? temp : 0.0 
     end
     return tau
 end
 function tauPOP3_func(epsilon0,epsilonhf,band,Ef,T,md,E::Array{Float64},opPhE)
-    tau=Array{Float64}(length(E))
+    tau=Array{Float64}(undef,length(E))
     for (i,Ex) in enumerate(E)
         temp= tauPOP2_func(epsilon0,epsilonhf,band,Ef,T,md,Ex,opPhE) 
-        tau[i]=  temp>0 ? temp :0.0 
+        tau[i]=  temp>0 ? temp : 0.0 
     end
     return tau
 end
@@ -381,7 +383,7 @@ function tauII2_func(epsilon0,epsilonhf,band,Ef,T,NII,md,E::Float64,bndst)
         if E-band.offset < 0 
             return 0    
         else  
-            integrandp_tauII2_func(x)=q*getDOS_MultiBand_E_Total(bndst,x).*-fermiDerivativeTemp_Ef_E(Ef,T,x)    
+            integrandp_tauII2_func(x)=q*getDOS_MultiBand_E_Total(bndst,x) .*-fermiDerivativeTemp_Ef_E(Ef,T,x)    
             #nodes, weights = qnwlege(300, min, (Ef+20kBe*T))
             
             #integral1=quadgk(integrand,min,Ef+20kBe*T)[1]            
@@ -411,7 +413,7 @@ function tauII2_func(epsilon0,epsilonhf,band,Ef,T,NII,md,E::Float64,bndst)
         if -E+band.offset < 0 
             return 0    
         else   
-            integrandn_tauII2_func(x)=q*getDOS_MultiBand_E_Total(bndst,x).*-fermiDerivativeTemp_Ef_E(Ef,T,x)    
+            integrandn_tauII2_func(x)=q*getDOS_MultiBand_E_Total(bndst,x) .*-fermiDerivativeTemp_Ef_E(Ef,T,x)    
     
             #integral1=quadgk(integrand,min,Ef+20kBe*T)[1]
             global g_T,g_Ef,g_bndst,g_intvalue
@@ -440,11 +442,11 @@ function tauII2_func(epsilon0,epsilonhf,band,Ef,T,NII,md,E::Float64,bndst)
 end
 
 function tauII2_func(epsilon0,epsilonhf,band,Ef,T,NII,md,E::Array{Float64},bndst)
-    tau=Array{Float64}(length(E))
+    tau=Array{Float64}(undef,length(E))
     temp=0.0
     for (i,Ex) in enumerate(E)
         temp=tauII2_func(epsilon0,epsilonhf,band,Ef,T,NII,md,Ex,bndst)
-        tau[i]=  temp>0 ? temp :0.0       
+        tau[i]=  temp>0 ? temp : 0.0       
     end
     return tau
 end
@@ -467,10 +469,10 @@ end
 function tauPH_UV(gamma::Float64,x::Array{Float64},T::Float64,M::Float64,theta::Float64,a::Float64,beta::Float64)
     bb=20*pi/3*hbar*(6*pi*pi/4)^(1/3)        
     #println("bb ",bb)
-    return 1./(bb*(1+beta*5/9)/(1+beta)*gamma^2/M/a^2*(T/theta)^3.*x.^2)    
+    return 1 ./(bb*(1+beta*5/9)/(1+beta)*gamma^2/M/a^2*(T/theta)^3 .*x.^2)    
 end
 function tauPH_PDV(GM::Float64,T::Float64,x::Array{Float64},v::Float64,delta::Float64)    
-    return 1./(GM/4/pi*(delta/v)^3*(kB*T/hbar)^4.*x.^4)
+    return 1 ./(GM/4/pi*(delta/v)^3*(kB*T/hbar)^4 .*x .^4)
 end
 function tauPH_eV(bandst::BandStrucTx,Eep::Float64,md::Float64,x::Array{Float64},Ef::Float64,v::Float64,T::Float64,d::Float64)
     tau=0
@@ -480,33 +482,33 @@ function tauPH_eV(bandst::BandStrucTx,Eep::Float64,md::Float64,x::Array{Float64}
             #println("md ",md)
             ts=md*v*v/(2*kB*T)
             Efst=Ef#*q/kB/T
-            ex1=(1+exp(-ts+Efst-x.*x/16/ts+x/2))
-            ex2=(1+exp(-ts+Efst-x.*x/16/ts-x/2)) 
-            kk=((Eep^2*md^3*v)/(4*pi*hbar^4*d*ts).*log(ex1./ex2))
+            ex1=(1+exp(-ts+Efst-x .*x/16/ts+x/2))
+            ex2=(1+exp(-ts+Efst-x .*x/16/ts-x/2)) 
+            kk=((Eep^2*md^3*v)/(4*pi*hbar^4*d*ts) .*log(ex1 ./ex2))
             tau+=kk
-            #println("kk ",1./kk)
+            #println("kk ",1 ./kk)
         else
             tau+=0
         end
     end
-    return 1./tau#1./((Eep^2*md^3*v)/(4*pi*hbar^4*d*ts).*log(ex1./ex2))
+    return 1 ./tau#1 ./((Eep^2*md^3*v)/(4*pi*hbar^4*d*ts) .*log(ex1 ./ex2))
 end
 function tauPH_NL(gamma::Float64,V::Float64,x::Array{Float64},T::Float64,M::Float64,v::Float64)
     
-    return M*v^5*hbar^4./(kB^5*gamma^2*V*x.*x*T^5)    
+    return M*v^5*hbar^4 ./(kB^5*gamma^2*V*x .*x*T^5)    
 end
 function tauPH_NT(gamma::Float64,V::Float64,x::Array{Float64},T::Float64,M::Float64,v::Float64)
     
-    return M*v^5*hbar^4./(kB^5*gamma^2*V*x.*x*T^5)    
+    return M*v^5*hbar^4 ./(kB^5*gamma^2*V*x .*x*T^5)    
 end
 function tauPH_U(gamma::Float64,x::Array{Float64},T::Float64,M::Float64,v::Float64,theta::Float64)
   
-    return (M*v^2*theta*hbar)./((gamma*kB*x.*T).^2*T.*exp(-theta/3./T))
+    return (M*v^2*theta*hbar) ./((gamma*kB*x .*T).^2*T.*exp(-theta/3 ./T))
 end
 function tauPH_U_SA(gamma::Float64,intx::Array{Float64},T::Float64,M::Float64,theta::Float64,omegaD::Float64,beta::Float64,delta::Float64)#intx is different from x in other phonon calculations intx=omega/omegaD
     Mcgs=M*1000
     deltacgs=delta*100
-    return 3.264e-2*((1+5/9*beta)/(1+beta))*gamma^2.*intx.^2./Mcgs/deltacgs^2/(theta/T)    
+    return 3.264e-2*((1+5/9*beta)/(1+beta))*gamma^2 .*intx.^2 ./Mcgs/deltacgs^2/(theta/T)    
 end
 function tauPH_EP_SA(Eep::Float64,md::Float64,x::Array{Float64},Ef::Float64,
     T::Float64,M::Float64,theta::Float64,delta::Float64)
@@ -519,29 +521,32 @@ function tauPH_EP_SA(Eep::Float64,md::Float64,x::Array{Float64},Ef::Float64,
     alphat=thetaD/T
     #println("alphat ",alphat)
     lambda=1
-    ex1=1+exp(-alphat*y+eta-D*alphat*x.*x+alphat.*x/2)
-    ex2=1+exp(-alphat*y+eta-D*alphat*x.*x-alphat.*x/2)    
-    ext=ex1./ex2
+    ex1=1+exp(-alphat*y+eta-D*alphat*x .*x+alphat.*x/2)
+    ex2=1+exp(-alphat*y+eta-D*alphat*x .*x-alphat.*x/2)    
+    ext=ex1 ./ex2
     logt=log(ext)
-    return 1./(lambda*(A*Eep^2/alphat).*logt) 
+    return 1 ./(lambda*(A*Eep^2/alphat) .*logt) 
 end
 function tauPH_ALL(MI::Float64,MII::Float64,y::Float64,V::Float64,x::Array{Float64},T::Float64,M::Float64,v::Float64)
      Gamma=(1-y)*((MI-M)/M)^2+y*((MII-M)/M)^2
-    return 1./(Gamma*V/v^3./4./pi)./(kB*T*x/hbar).^4 #4*pi*v^3*hbar^4./(Gamma*V*(kB*T*x).^4)
+    return 1 ./(Gamma*V/v^3 ./4 ./pi) ./(kB*T*x/hbar).^4 #4*pi*v^3*hbar^4 ./(Gamma*V*(kB*T*x).^4)
 end
 function tauPH_ALL(Gamma::Float64,V::Float64,x::Array{Float64},T::Float64,v::Float64)
      #Gamma=(1-y)*((MI-M)/M)^2+y*((MII-M)/M)^2
-    return 1./(Gamma*V/v^3./4./pi)./(kB*T*x/hbar).^4 #4*pi*v^3*hbar^4./(Gamma*V*(kB*T*x).^4)
+    return 1 ./(Gamma*V/v^3 ./4 ./pi) ./(kB*T*x/hbar).^4 #4*pi*v^3*hbar^4./(Gamma*V*(kB*T*x).^4)
 end
 function tauPH_B(v::Float64,alpha::Float64,d::Float64)
-    return d*(1+alpha)/(v*(1-alpha)) 
+    return d*(1+alpha) ./(v*(1-alpha)) 
 end
 function tauPH_C(Nc::Float64,Dc::Float64,x::Array{Float64},T::Float64,v::Float64)
-    return (2*(kB*Dc*x*T).^4+32*hbar^4*v^4)./(pi*v*Nc*Dc^2*(Dc*kB*x*T).^4) 
+    return (2*(kB*Dc*x*T) .^4+32*hbar^4*v .^4) ./(pi*v*Nc*Dc^2 .*(Dc*kB*x*T).^4) 
+end
+function tauPH_NP(alpha::Float64,rho::Float64,R::Float64,x::Array{Float64},T::Float64,v::Float64)
+    return (v .^4*(kB .*T ./hbar)^4 .*x .^4 .*R .^4 ./v .^4 .+1) ./(rho .*alpha*2*pi*v*R .^2 .*(kB .*T ./hbar) .^4 .*x .^4 .*R .^4)
 end
 function tauPH_e(Eep::Float64,md::Float64,ro::Float64,Ef::Float64,x::Array{Float64},T::Float64,v::Float64)
     Ef=Ef*q/kB/T
     beta=md*v^2/2/kB/T
-    logp=log.((1+exp.(beta-Ef+x.*x/(16*beta)+x/2))./(1+exp.(beta-Ef+x.*x/(16*beta)-x/2)))
-    return 4*pi*hbar^4*ro*beta./(3*Eep^2*md^3*v)./(x-logp) 
+    logp=log.((1 .+exp.(beta-Ef .+x .*x/(16*beta) .+x/2)) ./(1 .+exp.(beta .-Ef .+x .*x/(16*beta) .-x/2)))
+    return 4*pi*hbar^4*ro*beta ./(3*Eep^2*md^3*v) ./(x-logp) 
 end

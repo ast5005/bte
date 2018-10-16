@@ -5,7 +5,7 @@ function sigmaArray(bndstTx,Ts,numofn,tauTOTTx,xmax)
     for (j,Tx) in enumerate(Ts) 
         bndstTx.var[1]=Tx    
         tauTOTTx.variables[2]=Tx    
-        types.updatebnstTx(bndstTx)    
+        types10.updatebnstTx(bndstTx)    
         for (k,nx) in enumerate(numofn)
             tauTOTTx.variables[7]=nx*1e6
             sigmas[j,k]=sigma_Multiband(tauTOTTx,bndstTx,Efs[j,k],Tx)
@@ -30,7 +30,7 @@ function EfsArray(bndstTx,Ts,numofn,tauTOTTx,xmax)
     for (j,Tx) in enumerate(Ts) 
         bndstTx.var[1]=Tx    
         tauTOTTx.variables[2]=Tx    
-        types.updatebnstTx(bndstTx)   
+        types10.updatebnstTx(bndstTx)   
         for (k,nx) in enumerate(numofn)
             tauTOTTx.variables[7]=nx*1e6
             Efs[j,k]=Fermilevel_n(nx,bndstTx,Tx,xmax) # Efinput[j]+Eoff#
@@ -76,7 +76,7 @@ function fitsigmas(bndst,xs,TsA,numofn,numofnn,tauTOTTx,xmax,sigmasA)
                 bndstTx.var[2]=xsx
                 #println("x=$xsx")
                 tauTOTTx.variables[4]=xsx
-                types.updatebnstTx(bndst)
+                types10.updatebnstTx(bndst)
                 #println("i=$i, j=$j, k=$k")
                 Efs[i,j,k]=Fermilevel_n(nx,bndst,Tx,xmax)   
                 for (l,band) in enumerate(bndst.bands)
@@ -230,7 +230,7 @@ function electronicPropsisoVarn(bndst,xs,Ts,TsA,numofnA,numofnn,tauTOTTx,xmax)
         bndstTx.var[2]=xsx
         #println("x=$xsx")
         tauTOTTx.variables[4]=xsx
-        types.updatebnstTx(bndst)
+        types10.updatebnstTx(bndst)
         Efs[i]=Fermilevel_n(nx,bndst,Tx,xmax)                
         for (l,band) in enumerate(bndst.bands)                    
             if l==1                    
@@ -332,7 +332,7 @@ function electronicProps(bndst,xs,Ts,numofn,tauTOTTx,xmax)
                 keh=0.0
                 bndstTx.var[2]=xsx
                 tauTOTTx.variables[4]=xsx
-                types.updatebnstTx(bndst)
+                types10.updatebnstTx(bndst)
                 Efs[i,j,k]=Fermilevel_n(nx,bndst,Tx,xmax)                
                 for (l,band) in enumerate(bndst.bands)
                     #println("sigma ",sigmae)
@@ -410,17 +410,17 @@ function electronicPropsiso(bndst,xs,Ts,numofn,numofnn,tauTOTTx,xmax)
     preseebeckh=0.0
     prekee=0.0
     prekeh=0.0    
-    sigmas=Array{Float64}(length(Ts),length(numofn),length(xs))
-    seebecks=Array{Float64}(length(Ts),length(numofn),length(xs))
-    sigmaes=Array{Float64}(length(Ts),length(numofn),length(xs))
-    sigmahs=Array{Float64}(length(Ts),length(numofn),length(xs))
-    seebeckes=Array{Float64}(length(Ts),length(numofn),length(xs))
-    seebeckhs=Array{Float64}(length(Ts),length(numofn),length(xs))            
-    kees=Array{Float64}(length(Ts),length(numofn),length(xs))
-    kehs=Array{Float64}(length(Ts),length(numofn),length(xs))
-    kes=Array{Float64}(length(Ts),length(numofn),length(xs))
-    kbis=Array{Float64}(length(Ts),length(numofn),length(xs))
-    Efs=Array{Float64}(length(Ts),length(numofn),length(xs))     
+    sigmas=Array{Float64}(undef,length(Ts),length(numofn),length(xs))
+    seebecks=Array{Float64}(undef,length(Ts),length(numofn),length(xs))
+    sigmaes=Array{Float64}(undef,length(Ts),length(numofn),length(xs))
+    sigmahs=Array{Float64}(undef,length(Ts),length(numofn),length(xs))
+    seebeckes=Array{Float64}(undef,length(Ts),length(numofn),length(xs))
+    seebeckhs=Array{Float64}(undef,length(Ts),length(numofn),length(xs))            
+    kees=Array{Float64}(undef,length(Ts),length(numofn),length(xs))
+    kehs=Array{Float64}(undef,length(Ts),length(numofn),length(xs))
+    kes=Array{Float64}(undef,length(Ts),length(numofn),length(xs))
+    kbis=Array{Float64}(undef,length(Ts),length(numofn),length(xs))
+    Efs=Array{Float64}(undef,length(Ts),length(numofn),length(xs))     
     for (i,Tx) in enumerate(Ts)
         #println("T=$Tx")
         bndstTx.var[1]=Tx    
@@ -441,7 +441,7 @@ function electronicPropsiso(bndst,xs,Ts,numofn,numofnn,tauTOTTx,xmax)
                 bndstTx.var[2]=xsx
                 #println("x=$xsx")
                 tauTOTTx.variables[4]=xsx
-                types.updatebnstTx(bndst)
+                types10.updatebnstTx(bndst)
                 Efs[i,j,k]=Fermilevel_n(nx,bndst,Tx,xmax)                
                 for (l,band) in enumerate(bndst.bands)                    
                     if l==1                    
@@ -512,7 +512,7 @@ end
 
 function thermalPropsiso(Ts,tauPHL::Array{tau_phonon_B,1},tauPHTx::Array{tau_phonon_B,1},tauPHTy::Array{tau_phonon_B,1},vsos::Array{Float64,1})
     
-    klattice=Array{Float64,3}(length(Ts),length(numofn),length(xs))
+    klattice=Array{Float64,3}(undef,length(Ts),length(numofn),length(xs))
     for (i,iT) in enumerate(Ts)
     #for (k,kx) in enumerate(xs) 
         for (j,jn) in enumerate(numofn)
@@ -596,8 +596,8 @@ function differentialcond(band,xs,Ts,numofn,numofnn,tauTOTTx,xmax,Efs)
             band.var[2]=xsx
             #println("x=$xsx")
             tauTOTTx.variables[4]=xsx
-            #types.updatebnstTx(bndst)
-            types.bandTxupdate(band)   
+            #types10.updatebnstTx(bndst)
+            types10.bandTxupdate(band)   
             for (Exi,Exx) in  enumerate(Ex)
                 #Efs[i,j,k]=Fermilevel_n(nx,bndst,Tx,xmax)
                 sigmaDs=sigmaD(tauTOTTx,band,Exx,Efs[i,j,k],Tx)   
