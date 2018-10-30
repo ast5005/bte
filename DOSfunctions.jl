@@ -847,7 +847,7 @@ function Ii2(tauPHTOT::tau_phonon_Base,tauPHN::tau_phonon_Base,thetai::Float64,T
     tauPHTOT.variables[2]=T
     tauPHN.variables[2]=T
     integrand(x)=get_tau_phonon(tauPHTOT,x) ./get_tau_phonon(tauPHN,x) .*(x .^4) .*exp.(x) ./(exp.(x) .-1) .^2
-    nodes, weights = qnwlege(100,0,thetai/T)
+    nodes, weights = qnwlege(1000,0,thetai/T)
     return a= do_quad(integrand,nodes, weights)    
 end
 #
@@ -858,7 +858,7 @@ function Ii3(tauPHTOT::tau_phonon_Base,tauPHN::tau_phonon_Base,tauPHR::tau_phono
     tauPHR.variables[2]=T
     #integrand(x)=get_tau_phonon(tauPHTOT,x)./get_tau_phonon(tauPHN,x)./get_tau_phonon(tauPHR,x).*(x.^4).*exp.(x)./(exp.(x)-1).^2
     integrand(x)=get_tau_phonon(tauPHTOT,x) ./get_tau_phonon(tauPHN,x) ./get_tau_phonon(tauPHR,x) .*(x.^4) .*exp.(x) ./((exp.(x) .-1) .^2)
-    nodes, weights = qnwlege(100,1e-4,thetai/T)
+    nodes, weights = qnwlege(1000,1e-4,thetai/T)
     return a= do_quad(integrand,nodes, weights)    
 end
 #

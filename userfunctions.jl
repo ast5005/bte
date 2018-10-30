@@ -542,7 +542,9 @@ function tauPH_C(Nc::Float64,Dc::Float64,x::Array{Float64},T::Float64,v::Float64
     return (2*(kB*Dc*x*T) .^4+32*hbar^4*v .^4) ./(pi*v*Nc*Dc^2 .*(Dc*kB*x*T).^4) 
 end
 function tauPH_NP(alpha::Float64,rho::Float64,R::Float64,x::Array{Float64},T::Float64,v::Float64)
-    return (v .^4*(kB .*T ./hbar)^4 .*x .^4 .*R .^4 ./v .^4 .+1) ./(rho .*alpha*2*pi*v*R .^2 .*(kB .*T ./hbar) .^4 .*x .^4 .*R .^4)
+    #return (v .^4*(kB .*T ./hbar)^4 .*x .^4 .*R .^4 ./v .^4 .+1) ./(rho .*alpha*2*pi*v*R .^2 .*(kB .*T ./hbar) .^4 .*x .^4 .*R .^4)
+    vT=v
+    return 1 ./(alpha*2*pi*vT .*R .^2*(kB .*T ./hbar)^4 .*x .^4 .*R .^4 ./vT .^4 ./((kB .*T ./hbar)^4 .*x .^4 .*R .^4 ./vT .^4 .+1)*rho)
 end
 function tauPH_e(Eep::Float64,md::Float64,ro::Float64,Ef::Float64,x::Array{Float64},T::Float64,v::Float64)
     Ef=Ef*q/kB/T
