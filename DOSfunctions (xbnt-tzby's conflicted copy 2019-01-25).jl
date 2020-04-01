@@ -17,31 +17,10 @@ using FastGaussQuadrature
 #
 const hbar3=1.1728121633258218e-102
 const pi2=9.869604401089358
-intgrid2=100
-gridx=100
-gridke=40
-sigmagrid=100
+
+nodes0, weights0= qnwlege(500, 2.0,7.0)
 nodes1, weights1= qnwlege(100, 2.0,7.0)
-tol=1e-7
 
-function setDOSintgrid(x)
-     intgrid2=x
-    nodes0, weights0= qnwlege(x, 2.0,7.0)
-     return 1
-end
-function setsigmagrid(x)
-    sigmagrid=x   
-    return 1
-end
-function setDOSgridx(x)
-     gridx=x    
-     return 1
-end
-
-function setDOSgridke(x)     
-    nodes1, weights1= qnwlege(x, 2.0,7.0)
-     return 1
-end
 function getDOS_SingleBand_E(band::parBandTx,E::Float64)
     alpha=band.alpha/q
     dos=0.0
@@ -60,11 +39,7 @@ function getDOS_SingleBand_E(band::parBandTx,E::Float64)
             if E>=band.offset                         
                 #dos[i]=sqrt(2).*(band.effMass)^1.5./hbar^3 ./pi^2 .*sqrt((E[i].-band.offset)*q)
                 Et=(E.-band.offset)*q
-                dos1=sqrt(2).*sqrt((band.effMass)^3)./hbar^3 ./pi^2 
-                dos2=sqrt(Et+alpha*Et.^2)
-                dos3=(1+2alpha*Et)
-                #dos=sqrt(2).*sqrt((band.effMass)^3)./hbar^3 ./pi^2 .*sqrt(Et+alpha*Et.^2).*(1+2alpha*Et)
-                dos=dos1.*dos2.*dos3
+                dos=sqrt(2).*sqrt((band.effMass)^3)./hbar^3 ./pi^2 .*sqrt(Et+alpha*Et.^2).*(1+2alpha*Et)
             #println("dos variable in getDOS_SingleBand_E meff>0 ",dos)
              else
                 dos=0.0
@@ -262,16 +237,15 @@ function Fermilevel_n(numberofn::Float64,bndst::BandStrucTx,Temp,xmax)
     end
     equation(x)=numberofn*1e6-NumofnMultiBand2(bndst,x,Temp,xmax)
     if numberofn<-1e12
-        #println("numberofn",numberofn)
-        EfcalcM=fzero(equation,minimum(C)-20kBe*Temp,10.0,xtrol=tol)#
+        #println("numberofn<-1e12")
+        EfcalcM=fzero(equation,minimum(C)-20kBe*Temp,10.0)#
     elseif numberofn>1e12
         #println("numberofn<-1e12")
-        EfcalcM=fzero(equation,0.0,maximum(V)+20kBe,xtrol=tol)
+        EfcalcM=fzero(equation,0.0,maximum(V)+20kBe)
     else
         error("numberofn cannot be so small >1e12 or <-1e12")
     end
     #return (EfcalcM.minimum,EfcalcM.converged)
-    #println("residual ",100*((numberofn*1e6-equation(EfcalcM))/numberofn/1e6-1))
     return EfcalcM
 end
 function setintegralbound(Efmin::Float64,Efmax::Float64,Tmin::Float64,Tmax::Float64)
@@ -394,7 +368,8 @@ function Numofn2T(band,Ef,Temp::Float64,xmax::Float64)
     return a[1]
 end
 function Numofn2(band,Ef,Temp::Float64,xmax::Float64)
-    degen=band.onevalleyeffmass ? band.degen : 1.0    
+    degen=band.onevalleyeffmass ? band.degen : 1.0
+    gridx=40
     if band.effMass>=0.0         
         integrandp_Numofn2(E)=q*getDOS_SingleBand_E(band,E).*(-1*fermiStat_Temp_Ef_E(Temp,Ef,E))
         #a=quadgk(integrand,band.offset,band.offset+20kBe*Temp)
@@ -439,13 +414,10 @@ end
 function NumofnMultiBand2(bndst,Ef,Temp::Float64,xmax::Float64)
     totalnumofn=0.0
     degen=1.0
-    #println("===========================================")
     for band in bndst.bands
         degen=band.onevalleyeffmass ? band.degen : 1.0
         totalnumofn=totalnumofn+Numofn2(band,Ef,Temp,xmax) 
-        #println("totalnumofn ",totalnumofn)
     end
-    #println("===========================================")
     return totalnumofn 
 end
 
@@ -524,7 +496,6 @@ function sigmaD(tau_electron::types10.tau_electron_Base,band,E,Ef,Temp)
     v=(square_velocity_E(band,E))    
     return q.*q.*q.*getDOS_SingleBand_E(band,E).*tau.*v.*-fermiDerivativeTemp_Ef_E(Ef,Temp,E) 
     #q.*q.*q.*getDOS_SingleBand_E(band,E).*tau#.*v.*-fermiDerivativeTemp_Ef_E(Ef,Temp,E)
-    #return getDOS_SingleBand_E(band,E)
 end
 
 #
@@ -566,21 +537,15 @@ end
 function sigma(tau_electron::types10.tau_electron_Base,band,Ef,Temp)    
     degen=band.onevalleyeffmass ? band.degen : 1.0
     if band.effMass>0                
-        #println("Sigma effmass>0")        
         integrandp_sigma(E)=sigmaD(tau_electron::types10.tau_electron_Base,band,E,Ef,Temp) 
-        
-        nodes0, weights0= qnwlege(sigmagrid, band.offset,band.offset+5.0)
-        
+        #nodes0, weights0= qnwlege(100, band.offset,band.offset+200kBe*Temp)
         a= do_quad(integrandp_sigma,nodes0, weights0)  
         #println("a=$a")
         return a*degen#quadgk(integrandp_sigma,0.0,Inf)[1]#a#quadgk(integrand,band.offset,band.offset+20kBe*Temp)[1]
     elseif band.effMass<0
-        #println("Sigma effmass<0")
-        #min=band.offset-200kBe*Temp<0 ? 0.0 : band.offset-200kBe*Temp
-        min=band.offset-5.0<0 ? 0.0 : band.offset-5.0
+        min=band.offset-200kBe*Temp<0 ? 0.0 : band.offset-200kBe*Temp    
         integrandn_sigma(E)=sigmaD(tau_electron::types10.tau_electron_Base,band,E,Ef,Temp) 
-        
-        nodes0, weights0 = qnwlege(sigmagrid, min,band.offset)
+        #nodes0, weights0 = qnwlege(100, min,band.offset)
         a= do_quad(integrandn_sigma,nodes0, weights0)         
         return a*degen#quadgk(integrandn_sigma,0.0,Inf)[1]#a#quadgk(integrand,min,band.offset)[1]
     else
@@ -701,15 +666,15 @@ function seebeck_Nominator(tau_electron::types10.tau_electron_Base,band,Ef,Temp)
     degen=band.onevalleyeffmass ? band.degen : 1.0
      if band.effMass>0                
         integrandseebeck_p(E)=sigmaD(tau_electron,band,E,Ef,Temp).*(E .-Ef).*q
-        nodes, weights = qnwlege(250, band.offset,band.offset+5.0)
-        a= do_quad(integrandseebeck_p,nodes, weights)
+        nodessn1, weightssn1 = qnwlege(1000, band.offset,band.offset+20kBe*Temp)
+        a= do_quad(integrandseebeck_p,nodessn1, weightssn1)
         Su=a#quadgk(integrandseebeck,band.offset,band.offset+20kBe*Temp)[1]
         return -1/q/Temp*(Su)*degen         
     elseif band.effMass<0
-        min=band.offset-5.0<0 ? 0.0 : band.offset-5.0    
+        min=band.offset-20kBe*Temp<0 ? 0.0 : band.offset-20kBe*Temp    
         integrandseebeck_n(E)=sigmaD(tau_electron,band,E,Ef,Temp) .*(E .-Ef) .*q 
-        nodes, weights = qnwlege(250,min,band.offset)
-        a= do_quad(integrandseebeck_n,nodes, weights)
+        nodessn2, weightssn2 = qnwlege(1000,min,band.offset)
+        a= do_quad(integrandseebeck_n,nodessn2, weightssn2)
         Su=a#quadgk(integrandseebeck,min,band.offset)[1]
         return -1/q/Temp*(Su)*degen 
     else
@@ -773,14 +738,14 @@ function keint(tau_electron::types10.tau_electron_Base,band,Ef,Temp)
     degen=band.onevalleyeffmass ? band.degen : 1.0
     if band.effMass>0                
         integrandp_keint(E)=sigmaD(tau_electron,band,E,Ef,Temp).*((E .-Ef)*q).^2 
-        nodes, weights = qnwlege(500, band.offset,band.offset+5.0)
+        nodes, weights = qnwlege(100, band.offset,band.offset+20kBe*Temp)
         a= do_quad(integrandp_keint,nodes, weights)
         #Su=a#quadgk(integrandseebeck,band.offset,band.offset+20kBe*Temp)[1]
         return a*degen        
     elseif band.effMass<0
-        min=band.offset-5.0 < 0 ? 0.0 : band.offset-5.0    
+        min=band.offset-20kBe*Temp<0 ? 0.0 : band.offset-20kBe*Temp    
         integrandn_keint(E)=sigmaD(tau_electron,band,E,Ef,Temp).*((E .-Ef)*q).^2
-        nodes, weights = qnwlege(500,min,band.offset)
+        nodes, weights = qnwlege(100,min,band.offset)
         a= do_quad(integrandn_keint,nodes, weights)
         #Su=a#quadgk(integrandseebeck,min,band.offset)[1]
         return a*degen

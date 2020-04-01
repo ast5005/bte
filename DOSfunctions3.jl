@@ -16,6 +16,16 @@ using QuantEcon
 #
 const hbar3=1.1728121633258218e-102
 const pi2=9.869604401089358
+intgrid2=200
+gridx=1000
+function setDOSintgrid(x)
+     intgrid2=x
+     return 1
+end
+function setDOSgrid(x)
+     gridx=x
+     return 1
+end
 function getDOS_SingleBand_E(band::parBandTx,E::Float64)
     return getDOS_SingleBand_E(band,[E])[1]
 end
@@ -280,7 +290,7 @@ function Numofn(band,Ef,Temp::Float64,xmax::Float64)
 end
 
 function Numofn2(band,Ef,Temp::Float64,xmax::Float64)
-    gridx=40
+    #gridx=100
     if band.effMass>=0.0         
         integrandp_Numofn2(E)=q*getDOS_SingleBand_E(band,E).*(-1*fermiStat_Temp_Ef_E(Temp,Ef,E))
         #a=quadgk(integrand,band.offset,band.offset+20kBe*Temp)
@@ -444,13 +454,13 @@ end
 function sigma(tau_electron::types.tau_electron_Base,band,Ef,Temp)    
     if band.effMass>0                
         integrandp_sigma(E)=q*sigmaD(tau_electron::types.tau_electron_Base,band,E,Ef,Temp) 
-        nodes, weights = qnwlege(100, band.offset,band.offset+20kBe*Temp)
+        nodes, weights = qnwlege(intgrid2, band.offset,band.offset+20kBe*Temp)
         a= do_quad(integrandp_sigma,nodes, weights)
         return a#quadgk(integrand,band.offset,band.offset+20kBe*Temp)[1]
     elseif band.effMass<0
         min=band.offset-20kBe*Temp<0 ? 0.0 : band.offset-20kBe*Temp    
         integrandn_sigma(E)=q*sigmaD(tau_electron::types.tau_electron_Base,band,E,Ef,Temp) 
-        nodes, weights = qnwlege(100, min,band.offset)
+        nodes, weights = qnwlege(intgrid2, min,band.offset)
         a= do_quad(integrandn_sigma,nodes, weights)
         return a#quadgk(integrand,min,band.offset)[1]
     else
@@ -570,14 +580,14 @@ function seebeck_Nominator(tau_electron::types.tau_electron_Base,band,Ef,Temp)
     Su=1.0
      if band.effMass>0                
         integrandseebeck_p(E)=sigmaD(tau_electron,band,E,Ef,Temp).*(E-Ef).*q
-        nodes, weights = qnwlege(100, band.offset,band.offset+20kBe*Temp)
+        nodes, weights = qnwlege(intgrid2,set,band.offset+20kBe*Temp)
         a= do_quad(integrandseebeck_p,nodes, weights)
         Su=a#quadgk(integrandseebeck,band.offset,band.offset+20kBe*Temp)[1]
         return -1/q/Temp*(Su)         
     elseif band.effMass<0
         min=band.offset-20kBe*Temp<0 ? 0.0 : band.offset-20kBe*Temp    
         integrandseebeck_n(E)=sigmaD(tau_electron,band,E,Ef,Temp).*(E-Ef).*q 
-        nodes, weights = qnwlege(100,min,band.offset)
+        nodes, weights = qnwlege(intgrid2.offset)
         a= do_quad(integrandseebeck_n,nodes, weights)
         Su=a#quadgk(integrandseebeck,min,band.offset)[1]
         return -1/q/Temp*(Su) 
