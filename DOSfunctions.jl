@@ -266,7 +266,7 @@ function Fermilevel_n(numberofn::Float64,bndst::BandStrucTx,Temp,xmax)
         EfcalcM=fzero(equation,minimum(C)-20kBe*Temp,10.0,xtrol=tol)#
     elseif numberofn>1e12
         #println("numberofn<-1e12")
-        EfcalcM=fzero(equation,0.0,maximum(V)+20kBe,xtrol=tol)
+        EfcalcM=fzero(equation,0.0,maximum(V)+20kBe*Temp,xtrol=tol)
     else
         error("numberofn cannot be so small >1e12 or <-1e12")
     end
