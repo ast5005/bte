@@ -13,17 +13,17 @@ global g_Ef=0.0
 func1(x)=1.0
 func2(x)=1.0
 func3(x)=1.0
-global g_band=parBandTx(true,1.0,0.0,0.0,0.0,[func1::Function],[func2::Function],[func3::Function],[0.0,0.0])
+global g_band=parBandTxC(true,1.0,0.0,0.0,0.0,0.0,[func1::Function],[func2::Function],[func3::Function],[0.0,0.0])
 global g_intvalue=0.0
-global g_intgridtau=100
+global g_intgridtau=500
 nodes, weights = qnwlege(g_intgridtau, 3.0,7.0)
 function settauintgrid(x)
      g_intgridtau=x
      nodes, weights = qnwlege(g_intgridtau, 3.0,7.0)
      return 1
 end
-#global g_Ef=0.0,g_band=parBandTx(0.0,0.0,0.0,[gen],[gen],[0.0,0.0]),g_intvalue=0.0
-#global g_Ef=0.0,g_band=parBandTx(0.0,0.0,0.0,[function ft1(x) return 1 end],[function ft2(x) return 1 end],[0.0,0.0]),g_intvalue=0.0
+#global g_Ef=0.0,g_band=parBand_Base(0.0,0.0,0.0,[gen],[gen],[0.0,0.0]),g_intvalue=0.0
+#global g_Ef=0.0,g_band=parBand_Base(0.0,0.0,0.0,[function ft1(x) return 1 end],[function ft2(x) return 1 end],[0.0,0.0]),g_intvalue=0.0
 
 function Egx3(T,x)
     return (0.78-(4.0e-4)*T)*(1-x)+(0.38-(2.8e-4)*T)*x
@@ -161,7 +161,7 @@ function tauAC_func(Cl,Da,T,mdx,E::Float64,band)
         end
     end
 end
-function tauAC_func(Cl::Float64,Da::Float64,Dv::Float64,T::Float64,mdx::Float64,E::Float64,band::parBandTx)      
+function tauAC_func(Cl::Float64,Da::Float64,Dv::Float64,T::Float64,mdx::Float64,E::Float64,band::parBand_Base)      
     #println("Reached tauAC_func v2")
     a=band.alpha
     md=band.effMass#/band.degen^(2/3)
@@ -227,7 +227,7 @@ function tauAC_func(Cl,Da,T,md,E::Array{Float64},band)
     end
     return tau
 end
-function tauAC_func(Cl::Float64,Da::Float64,Dv::Float64,T::Float64,md::Float64,E::Array{Float64},band::parBandTx)
+function tauAC_func(Cl::Float64,Da::Float64,Dv::Float64,T::Float64,md::Float64,E::Array{Float64},band::parBand_Base)
     tau=Array{Float64}(undef,length(E))
     for (i,Ex) in enumerate(E)
         temp= tauAC_func(Cl,Da,Dv,T,md,Ex,band) 

@@ -3,39 +3,51 @@
 module types10
 import constants
 import materialconstants
-export parBand, BandStruc, tau_electron_base, tau_electron_AC, tau_electron_B, parBandTx, BandStrucTx, tau_phonon_B, tau_phonon_Base
+export parBand, BandStruc, tau_electron_base, tau_electron_AC, tau_electron_B, parBandTx, parBandTxC, parBand_Base, BandStrucTx, tau_phonon_B, tau_phonon_Base
 
     abstract type tau_electron_Base end
 #should have a value
     abstract type tau_phonon_Base end
+abstract type parBand_Base end
 abstract type func end
-mutable struct parBand{T}
+mutable struct parBand{T} <: parBand_Base
   effMass::T
   alpha::T
   offset::T
-  degen::T
+  degen::T 
   #onevalleyeffmass::Boolean  
     
 end
-mutable struct parBandTx
+mutable struct parBandTx <: parBand_Base
     onevalleyeffmass::Bool # make i t true if effmass variable is one valley effective mass false if it includes all degenerate valleys
     degen::Float64
     effMass::Float64
     alpha::Float64
-    offset::Float64
+    offset::Float64  
     funsofoffset::Vector{Function} 
     funsofeffMass::Vector{Function}
     funsofalpha::Vector{Function}
     var::Vector{Float64}    
 end
-
+mutable struct parBandTxC <: parBand_Base
+    onevalleyeffmass::Bool # make i t true if effmass variable is one valley effective mass false if it includes all degenerate valleys
+    degen::Float64
+    effMass::Float64
+    alpha::Float64
+    offset::Float64
+    Ecutoff::Float64
+    funsofoffset::Vector{Function} 
+    funsofeffMass::Vector{Function}
+    funsofalpha::Vector{Function}
+    var::Vector{Float64}    
+end
 mutable struct BandStrucTx
-    bands::Vector{parBandTx}
+    bands::Vector{parBand_Base}
     var::Vector{Float64}
 end
 
 mutable struct BandStruc
-    bands::Vector{parBand}
+    bands::Vector{parBand_Base}
 end
 
 mutable struct tau_electron_AC <: tau_electron_Base
@@ -50,7 +62,7 @@ mutable struct tau_phonon_B <: tau_phonon_Base
     tauMethods::Vector{Function}
     variables::Vector{Any}      #variable[2] is T, variable[1] is meff variable[3] is E
 end
-function bandTxupdate(bandTx::parBandTx)
+function bandTxupdate(bandTx::parBand_Base)
     for method in bandTx.funsofoffset
         bandTx.offset=method(bandTx.var) 
     end

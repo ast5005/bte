@@ -21,7 +21,7 @@ intgrid2=100
 gridx=100
 gridke=40
 sigmagrid=100
-nodes1, weights1= qnwlege(100, 2.0,7.0)
+nodes1, weights1= qnwlege(200, 2.0,7.0)
 tol=1e-7
 
 function setDOSintgrid(x)
@@ -42,7 +42,7 @@ function setDOSgridke(x)
     nodes1, weights1= qnwlege(x, 2.0,7.0)
      return 1
 end
-function getDOS_SingleBand_E(band::parBandTx,E::Float64)
+function getDOS_SingleBand_E(band::parBand_Base,E::Float64)
     alpha=band.alpha/q
     dos=0.0
     if band.effMass<0.0 
@@ -72,7 +72,7 @@ function getDOS_SingleBand_E(band::parBandTx,E::Float64)
         end
     return dos
 end
-function getDOS_SingleBand_E2(band::parBandTx,E::Array{Float64,1})
+function getDOS_SingleBand_E2(band::parBand_Base,E::Array{Float64,1})
     effMass=0.0
     n=length(E)
     dos=Array{Float64}(undef,n)
@@ -97,7 +97,7 @@ function getDOS_SingleBand_E2(band::parBandTx,E::Array{Float64,1})
     end
     return dos
 end
-function getDOS_SingleBand_E(band::parBandTx,E::Array{Float64,1})
+function getDOS_SingleBand_E(band::parBand_Base,E::Array{Float64,1})
     effMass=0.0
     n=length(E)
     dos=Array{Float64}(undef,n) 
@@ -562,14 +562,20 @@ end
 ##############################################################################################################
 ##############################################################################################################
 #Electrical Conductivity
+function sigma(tau_electron::types10.tau_electron_Base,band::types10.parBand_Base,Ef,Temp)
+        return sigma(tau_electron::types10.tau_electron_Base,band,0.0,Ef,Temp)
+end
+function sigma(tau_electron::types10.tau_electron_Base,band::types10.parBand_Base,Ef,Temp)
+        return sigma(tau_electron,band,band.Ecutoff,Ef,Temp)
+end
 
-function sigma(tau_electron::types10.tau_electron_Base,band,Ef,Temp)    
+function sigma(tau_electron::types10.tau_electron_Base,band::types10.parBand_Base,Ec,Ef,Temp)    
     degen=band.onevalleyeffmass ? band.degen : 1.0
     if band.effMass>0                
         #println("Sigma effmass>0")        
         integrandp_sigma(E)=sigmaD(tau_electron::types10.tau_electron_Base,band,E,Ef,Temp) 
         
-        nodes0, weights0= qnwlege(sigmagrid, band.offset,band.offset+5.0)
+        nodes0, weights0= qnwlege(sigmagrid, band.offset+Ec,band.offset+5.0)
         
         a= do_quad(integrandp_sigma,nodes0, weights0)  
         #println("a=$a")
@@ -580,7 +586,7 @@ function sigma(tau_electron::types10.tau_electron_Base,band,Ef,Temp)
         min=band.offset-5.0<0 ? 0.0 : band.offset-5.0
         integrandn_sigma(E)=sigmaD(tau_electron::types10.tau_electron_Base,band,E,Ef,Temp) 
         
-        nodes0, weights0 = qnwlege(sigmagrid, min,band.offset)
+        nodes0, weights0 = qnwlege(sigmagrid, min,band.offset-Ec)
         a= do_quad(integrandn_sigma,nodes0, weights0)         
         return a*degen#quadgk(integrandn_sigma,0.0,Inf)[1]#a#quadgk(integrand,min,band.offset)[1]
     else
